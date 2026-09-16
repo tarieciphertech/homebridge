@@ -3,7 +3,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.models import User, db
-from app.notifications import notify_new_agent
+from app.notifications import notify_new_landlord
 
 auth = Blueprint("auth", __name__)
 
@@ -46,7 +46,7 @@ def register():
 
         if role == "landlord":
             try:
-                notify_new_agent(user)
+                notify_new_landlord(user)
             except Exception:
                 pass
             flash("Landlord account created. Your account will be reviewed before you can publish properties.", "success")
