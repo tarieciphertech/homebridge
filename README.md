@@ -2,9 +2,19 @@
 
 HomeBridge is a student-focused accommodation marketplace and property-management platform for Zimbabwe.
 
-**Official domain:** `https://homebridge.co.zw`
+## Current URLs
 
-**Repository:** `tarieciphertech/homebridge`
+| Purpose | URL |
+|---|---|
+| Main / production domain | https://homebridge.co.zw |
+| Current Oracle development/test site | https://homebridge.cyphertech.co.zw |
+| Student portal | https://homebridge.co.zw/student |
+| Landlord portal | https://homebridge.co.zw/landlord |
+| Admin portal | https://homebridge.co.zw/admin |
+| Future API | https://api.homebridge.co.zw |
+| GitHub repository | https://github.com/tarieciphertech/homebridge |
+
+> **Environment note:** `homebridge.co.zw` is the intended public production domain. The currently deployed and verified development/testing environment is `homebridge.cyphertech.co.zw` on the Oracle instance. The student, landlord, admin, and API URLs above describe the planned/public route structure and should not be assumed to be independently deployed unless verified.
 
 ## Project status
 
