@@ -1,0 +1,42 @@
+from flask import Blueprint, render_template, redirect, url_for, flash, request, send_from_directory
+from app.models import db, Property, Inquiry
+from app.notifications import notify_new_inquiry
+import os
+
+public = Blueprint('public', __name__)
+
+@public.route('/')
+def home():
+    return redirect(url_for('public.properties'))
+
+@public.route('/properties')
+def properties():
+    listing_type = request.args.get('type', '')
+    property_type = request.args.get('property_type', '')
+    city = request.args.get('city', '')
+    query = Property.query.filter_by(is_published=True)
+    if listing_type: query = query.filter_by(listing_type=listing_type)
+    if property_type: query = query.filter_by(property_type=property_type)
+    if city: query = query.filter(Property.city.ilike(f'%{city}%'))
+    all_properties = query.order_by(Property.is_featured.desc(), Property.submitted_at.desc()).all()
+    cities = [c[0] for c in db.session.query(Property.city).filter_by(is_published=True).distinct().all() if c[0]]
+    return render_template('public/properties.html', properties=all_properties, cities=cities, listing_type=listing_type, property_type=property_type, city=city)
+
+@public.route('/properties/<int:property_id>')
+def property_detail(property_id):
+    prop = Property.query.filter_by(id=property_id, is_published=True).first_or_404()
+    similar = Property.query.filter_by(is_published=True, listing_type=prop.listing_type, city=prop.city).filter(Property.id != prop.id).limit(3).all()
+    return render_template('public/property_detail.html', prop=prop, similar=similar)
+
+@public.route('/inquire', methods=['POST'])
+def inquire():
+    inquiry = Inquiry(visitor_name=request.form.get('visitor_name'), visitor_email=request.form.get('visitor_email'), visitor_phone=request.form.get('visitor_phone'), inquiry_type='property', reference_id=request.form.get('reference_id'), message=request.form.get('message'))
+    db.session.add(inquiry); db.session.commit()
+    notify_new_inquiry(inquiry, request.form.get('reference_title', 'a property'))
+    flash('Your inquiry has been sent. We will contact you shortly.', 'success')
+    return redirect(request.referrer or url_for('public.properties'))
+
+@public.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    upload_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'uploads')
+    return send_from_directory(upload_folder, filename)
