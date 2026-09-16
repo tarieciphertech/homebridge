@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Listing Fee · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5"><div class="row justify-content-center"><div class="col-lg-8"><div class="card p-4">
+<h1>Landlord Listing Fee</h1><p class="text-muted">A confirmed listing fee is required before submitting accommodation to HomeBridge for verification.</p>
+{% if confirmed %}<div class="alert alert-success">Your listing fee is confirmed. You can submit properties for verification.</div><a class="btn btn-gold" href="{{url_for('landlord.properties')}}">Manage Properties</a>
+{% elif fee <= 0 %}<div class="alert alert-info">No landlord listing fee is currently configured. Property submissions are not blocked by a listing fee.</div><a class="btn btn-gold" href="{{url_for('landlord.properties')}}">Manage Properties</a>
+{% elif pending_payment %}<div class="alert alert-warning">Payment reference <strong>{{pending_payment.reference}}</strong> is awaiting admin verification. You do not need to submit it again.</div>
+{% else %}<div class="border rounded p-3 mb-4"><div class="text-muted">Current listing fee</div><div class="fs-2 fw-bold">{{'%.2f'|format(fee)}} {{currency}}</div></div>{% if payment_details %}<div class="card bg-dark-subtle border-0 p-3 mb-4"><h5>Payment instructions</h5><div style="white-space:pre-line">{{payment_details}}</div></div>{% endif %}<form method="post" action="{{url_for('landlord.submit_listing_fee')}}" enctype="multipart/form-data"><div class="mb-3"><label class="form-label">Payment reference *</label><input class="form-control" name="reference" required placeholder="Transaction/reference number"></div><div class="mb-3"><label class="form-label">Proof of payment *</label><input class="form-control" type="file" name="proof_file" required accept="image/*,.pdf"></div><button class="btn btn-gold">Submit Payment for Verification</button></form>{% endif %}
+</div></div></div></div>
+{% endblock %}
