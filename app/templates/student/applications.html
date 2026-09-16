@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}My Applications · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1>My Applications</h1>
+      <p class="text-muted mb-0">Track the accommodation applications you have submitted.</p>
+    </div>
+    <a href="{{ url_for('public.properties') }}" class="btn btn-gold">Find Accommodation</a>
+  </div>
+
+  <div class="card p-4">
+    {% if applications %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>Location</th>
+              <th>Submitted</th>
+              <th>Status</th>
+              <th class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for application in applications %}
+            <tr>
+              <td><a href="{{ url_for('public.property_detail', property_id=application.property.id) }}">{{ application.property.title }}</a></td>
+              <td>{{ application.property.location }}, {{ application.property.city }}</td>
+              <td>{{ application.submitted_at.strftime('%d %b %Y') }}</td>
+              <td>
+                {% if application.status == 'approved' %}
+                  <span class="badge bg-success">Approved</span>
+                {% elif application.status == 'rejected' %}
+                  <span class="badge bg-danger">Rejected</span>
+                {% elif application.status == 'withdrawn' %}
+                  <span class="badge bg-secondary">Withdrawn</span>
+                {% elif application.status == 'under_review' %}
+                  <span class="badge bg-info text-dark">Under Review</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Pending</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                {% if application.status in ['pending', 'under_review'] %}
+                  <form method="post" action="{{ url_for('student.withdraw_application', application_id=application.id) }}" class="d-inline" onsubmit="return confirm('Withdraw this application?');">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Withdraw</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% if application.message %}
+            <tr>
+              <td colspan="5" class="pt-0 text-muted small">Message: {{ application.message }}</td>
+            </tr>
+            {% endif %}
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center py-5">
+        <h4>No applications yet</h4>
+        <p class="text-muted">Browse available student accommodation and submit an application when you find a suitable property.</p>
+        <a href="{{ url_for('public.properties') }}" class="btn btn-gold">Browse Properties</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
