@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Landlords · Admin{% endblock %}
+{% block content %}
+<div class="container py-5"><div class="d-flex justify-content-between align-items-center mb-4"><div><h1>Landlords</h1><p class="text-muted mb-0">Review and approve property owners.</p></div><a href="{{ url_for('admin_bp.dashboard') }}" class="btn btn-outline-light">Dashboard</a></div>
+<div class="card p-4"><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Properties</th><th>Status</th><th></th></tr></thead><tbody>{% for landlord in landlords %}<tr><td>{{ landlord.name }}</td><td>{{ landlord.email }}</td><td>{{ landlord.phone or '—' }}</td><td>{{ landlord.properties|length }}</td><td>{% if landlord.is_approved %}<span class="badge bg-success">Approved</span>{% else %}<span class="badge bg-warning text-dark">Pending</span>{% endif %}</td><td>{% if not landlord.is_approved %}<a class="btn btn-sm btn-gold" href="{{ url_for('admin_bp.approve_landlord', user_id=landlord.id) }}">Approve</a>{% endif %}</td></tr>{% else %}<tr><td colspan="6" class="text-muted">No landlords registered yet.</td></tr>{% endfor %}</tbody></table></div></div></div>
+{% endblock %}
