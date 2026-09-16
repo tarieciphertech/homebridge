@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit Property' if mode == 'edit' else 'Add Property' }} · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="mb-4">
+    <h1>{{ 'Edit Property' if mode == 'edit' else 'Add Property' }}</h1>
+    <p class="text-muted">Provide accurate accommodation details. New or edited listings are reviewed before publication.</p>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="card p-4">
+    <div class="row g-3">
+      <div class="col-md-8"><label class="form-label">Property title *</label><input class="form-control" name="title" required value="{{ property.title if property else '' }}"></div>
+      <div class="col-md-4"><label class="form-label">Property type</label><select class="form-select" name="property_type">{% for value in ['house','apartment','room','hostel'] %}<option value="{{ value }}" {% if property and property.property_type == value %}selected{% endif %}>{{ value|title }}</option>{% endfor %}</select></div>
+      <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" rows="4" name="description">{{ property.description if property else '' }}</textarea></div>
+      <div class="col-md-4"><label class="form-label">Monthly rent *</label><input class="form-control" type="number" min="0" step="0.01" name="price" required value="{{ property.price if property else '' }}"></div>
+      <div class="col-md-4"><label class="form-label">Listing type</label><select class="form-select" name="listing_type"><option value="rent" {% if not property or property.listing_type == 'rent' %}selected{% endif %}>Rent</option></select></div>
+      <div class="col-md-4"><label class="form-label">Country</label><input class="form-control" name="country" value="{{ property.country if property else 'Zimbabwe' }}"></div>
+      <div class="col-md-6"><label class="form-label">Location / suburb *</label><input class="form-control" name="location" required value="{{ property.location if property else '' }}"></div>
+      <div class="col-md-6"><label class="form-label">City *</label><input class="form-control" name="city" required value="{{ property.city if property else '' }}"></div>
+      <div class="col-md-3"><label class="form-label">Bedrooms</label><input class="form-control" type="number" min="0" name="bedrooms" value="{{ property.bedrooms if property else '' }}"></div>
+      <div class="col-md-3"><label class="form-label">Bathrooms</label><input class="form-control" type="number" min="0" name="bathrooms" value="{{ property.bathrooms if property else '' }}"></div>
+      <div class="col-md-3"><label class="form-label">Total rooms</label><input class="form-control" type="number" min="0" name="total_rooms" value="{{ property.total_rooms if property else '' }}"></div>
+      <div class="col-md-3"><label class="form-label">Available rooms</label><input class="form-control" type="number" min="0" name="available_rooms" value="{{ property.available_rooms if property else '' }}"></div>
+      <div class="col-md-4"><label class="form-label">Size (m²)</label><input class="form-control" type="number" min="0" step="0.01" name="size_sqm" value="{{ property.size_sqm if property else '' }}"></div>
+      <div class="col-md-4"><label class="form-label">Availability</label><select class="form-select" name="availability_status"><option value="available" {% if not property or property.availability_status == 'available' %}selected{% endif %}>Available</option><option value="limited" {% if property and property.availability_status == 'limited' %}selected{% endif %}>Limited availability</option><option value="unavailable" {% if property and property.availability_status == 'unavailable' %}selected{% endif %}>Unavailable</option></select></div>
+      <div class="col-md-4"><label class="form-label">Photos</label><input class="form-control" type="file" name="images" multiple accept="image/*"><div class="form-text">You can select multiple images.</div></div>
+      <div class="col-12"><label class="form-label">Amenities</label><textarea class="form-control" rows="3" name="amenities" placeholder="Wi-Fi, water, electricity, security, parking...">{{ property.amenities if property else '' }}</textarea></div>
+      <div class="col-12"><label class="form-label">House rules</label><textarea class="form-control" rows="3" name="house_rules" placeholder="Quiet hours, visitors, smoking policy...">{{ property.house_rules if property else '' }}</textarea></div>
+    </div>
+
+    {% if property and property.images %}
+      <hr class="my-4">
+      <h5>Current photos</h5>
+      <div class="row g-3">
+      {% for image in property.images %}
+        <div class="col-6 col-md-3">
+          <div class="border rounded p-2">
+            <img src="{{ url_for('public.uploaded_file', filename=image.filename) }}" class="img-fluid rounded" alt="Property photo">
+            <form method="post" action="{{ url_for('landlord.delete_image', property_id=property.id, image_id=image.id) }}" class="mt-2">
+              <button type="submit" class="btn btn-sm btn-outline-danger w-100" onclick="return confirm('Remove this image?');">Remove</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="d-flex gap-2 mt-4">
+      <button class="btn btn-gold" type="submit">{{ 'Save Changes' if mode == 'edit' else 'Submit Property' }}</button>
+      <a class="btn btn-outline-light" href="{{ url_for('landlord.properties') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
