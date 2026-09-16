@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{% block title %}Lexxi Cipher Property Management{% endblock %}</title>
+<title>{% block title %}HomeBridge{% endblock %}</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -10,14 +10,14 @@
 </head>
 <body>
 <nav class="navbar navbar-expand-lg sticky-top"><div class="container">
-<a class="navbar-brand brand" href="{{ url_for('public.properties') }}">Lexxi Cipher</a>
+<a class="navbar-brand brand" href="{{ url_for('public.properties') }}">HomeBridge</a>
 <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
 <div id="nav" class="collapse navbar-collapse"><div class="navbar-nav ms-auto align-items-lg-center">
 <a class="nav-link" href="{{ url_for('public.properties') }}">Find Accommodation</a>
 {% if current_user.is_authenticated %}
 {% if current_user.role=='admin' %}<a class="nav-link" href="{{ url_for('admin_bp.dashboard') }}">Admin Dashboard</a>
 {% elif current_user.role=='landlord' %}<a class="nav-link" href="{{ url_for('landlord.dashboard') }}">Landlord Dashboard</a>
-{% else %}<a class="nav-link" href="{{ url_for('student.dashboard') }}">Student Dashboard</a>{% endif %}
+{% else %}<a class="nav-link" href="{{ url_for('student.dashboard') }}">Student Dashboard</a><a class="nav-link" href="{{ url_for('student.service_fee') }}">Service Fee</a>{% endif %}
 <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
 {% else %}<a class="nav-link" href="{{ url_for('auth.login') }}">Login</a><a class="nav-link" href="{{ url_for('auth.register') }}">Create Account</a>{% endif %}
 </div></div></div></nav>
