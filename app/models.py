@@ -22,6 +22,14 @@ class User(UserMixin, db.Model):
     payments = db.relationship("Payment", back_populates="user", foreign_keys="Payment.user_id")
 
 
+class PlatformSetting(db.Model):
+    """Small key/value store for business settings that admins can change."""
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(80), unique=True, nullable=False, index=True)
+    value = db.Column(db.String(255), nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
 class Property(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     landlord_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
