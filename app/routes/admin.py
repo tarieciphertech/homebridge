@@ -7,15 +7,7 @@ from flask_login import current_user, login_required
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
-from app.models import (
-    Application,
-    Inquiry,
-    Payment,
-    Property,
-    PropertyImage,
-    User,
-    db,
-)
+from app.models import Application, Inquiry, Payment, Property, PropertyImage, User, db
 
 admin_bp = Blueprint("admin_bp", __name__, url_prefix="/admin")
 
@@ -27,7 +19,6 @@ def admin_required(f):
             flash("Admin access required.", "danger")
             return redirect(url_for("auth.login"))
         return f(*args, **kwargs)
-
     return decorated
 
 
@@ -62,10 +53,7 @@ def dashboard():
 @login_required
 @admin_required
 def landlords():
-    return render_template(
-        "admin/landlords.html",
-        landlords=User.query.filter_by(role="landlord").order_by(User.created_at.desc()).all(),
-    )
+    return render_template("admin/landlords.html", landlords=User.query.filter_by(role="landlord").order_by(User.created_at.desc()).all())
 
 
 @admin_bp.route("/approve-landlord/<int:user_id>")
@@ -117,10 +105,7 @@ def reject_payment(payment_id):
 @login_required
 @admin_required
 def properties():
-    return render_template(
-        "admin/properties.html",
-        properties=Property.query.order_by(Property.submitted_at.desc()).all(),
-    )
+    return render_template("admin/properties.html", properties=Property.query.order_by(Property.submitted_at.desc()).all())
 
 
 @admin_bp.route("/publish-property/<int:property_id>")
@@ -144,6 +129,42 @@ def feature_property(property_id):
     prop.is_featured = not prop.is_featured
     db.session.commit()
     return redirect(url_for("admin_bp.properties"))
+
+
+@admin_bp.route("/add-property", methods=["GET", "POST"])
+@login_required
+@admin_required
+def add_property():
+    if request.method == "POST":
+        prop = Property(
+            landlord_id=current_user.id,
+            title=request.form.get("title"),
+            description=request.form.get("description"),
+            property_type=request.form.get("property_type", "house"),
+            listing_type=request.form.get("listing_type", "rent"),
+            price=request.form.get("price") or 0,
+            location=request.form.get("location"),
+            city=request.form.get("city"),
+            country=request.form.get("country", "Zimbabwe"),
+            bedrooms=request.form.get("bedrooms") or None,
+            bathrooms=request.form.get("bathrooms") or None,
+            available_rooms=request.form.get("available_rooms") or None,
+            total_rooms=request.form.get("total_rooms") or None,
+            size_sqm=request.form.get("size_sqm") or None,
+            amenities=request.form.get("features"),
+            is_verified=True,
+            is_published=True,
+            is_featured=request.form.get("is_featured") == "on",
+        )
+        db.session.add(prop)
+        db.session.flush()
+        for img in request.files.getlist("images"):
+            if img and img.filename:
+                db.session.add(PropertyImage(property_id=prop.id, filename=save_file(img, "properties")))
+        db.session.commit()
+        flash("Property added and published.", "success")
+        return redirect(url_for("admin_bp.properties"))
+    return render_template("admin/add_property.html")
 
 
 @admin_bp.route("/inquiries")
