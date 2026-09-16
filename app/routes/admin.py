@@ -105,27 +105,59 @@ def reject_payment(payment_id):
 @login_required
 @admin_required
 def properties():
-    return render_template("admin/properties.html", properties=Property.query.order_by(Property.submitted_at.desc()).all())
+    items = Property.query.order_by(Property.submitted_at.desc()).all()
+    return render_template("admin/properties.html", properties=items)
 
 
-@admin_bp.route("/publish-property/<int:property_id>")
+@admin_bp.route("/verify-property/<int:property_id>", methods=["POST"])
+@login_required
+@admin_required
+def verify_property(property_id):
+    prop = Property.query.get_or_404(property_id)
+    prop.is_verified = True
+    prop.is_published = False
+    db.session.commit()
+    flash("Property verified. It can now be published.", "success")
+    return redirect(url_for("admin_bp.properties"))
+
+
+@admin_bp.route("/reject-property/<int:property_id>", methods=["POST"])
+@login_required
+@admin_required
+def reject_property(property_id):
+    prop = Property.query.get_or_404(property_id)
+    prop.is_verified = False
+    prop.is_published = False
+    prop.is_featured = False
+    db.session.commit()
+    flash("Property rejected and kept unpublished.", "warning")
+    return redirect(url_for("admin_bp.properties"))
+
+
+@admin_bp.route("/publish-property/<int:property_id>", methods=["POST"])
 @login_required
 @admin_required
 def publish_property(property_id):
     prop = Property.query.get_or_404(property_id)
+    if not prop.is_verified:
+        flash("Verify the property before publishing it.", "warning")
+        return redirect(url_for("admin_bp.properties"))
     prop.is_published = not prop.is_published
-    if prop.is_published:
-        prop.is_verified = True
+    if not prop.is_published:
+        prop.is_featured = False
     db.session.commit()
     flash(f"Property {'published' if prop.is_published else 'unpublished'}.", "success")
     return redirect(url_for("admin_bp.properties"))
 
 
-@admin_bp.route("/feature-property/<int:property_id>")
+@admin_bp.route("/feature-property/<int:property_id>", methods=["POST"])
 @login_required
 @admin_required
 def feature_property(property_id):
     prop = Property.query.get_or_404(property_id)
+    if not prop.is_verified or not prop.is_published:
+        flash("Only published, verified properties can be featured.", "warning")
+        return redirect(url_for("admin_bp.properties"))
     prop.is_featured = not prop.is_featured
     db.session.commit()
     return redirect(url_for("admin_bp.properties"))
@@ -151,7 +183,8 @@ def add_property():
             available_rooms=request.form.get("available_rooms") or None,
             total_rooms=request.form.get("total_rooms") or None,
             size_sqm=request.form.get("size_sqm") or None,
-            amenities=request.form.get("features"),
+            amenities=request.form.get("amenities"),
+            house_rules=request.form.get("house_rules"),
             is_verified=True,
             is_published=True,
             is_featured=request.form.get("is_featured") == "on",
