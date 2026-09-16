@@ -7,7 +7,7 @@ from flask_login import current_user, login_required
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
-from app.models import Application, Inquiry, Payment, Property, PropertyImage, User, db
+from app.models import Application, Inquiry, Payment, PlatformSetting, Property, PropertyImage, User, db
 
 admin_bp = Blueprint("admin_bp", __name__, url_prefix="/admin")
 
@@ -30,6 +30,19 @@ def save_file(file, subfolder):
     return os.path.join(subfolder, filename)
 
 
+def setting_value(key, default):
+    setting = PlatformSetting.query.filter_by(key=key).first()
+    return setting.value if setting else default
+
+
+def save_setting(key, value):
+    setting = PlatformSetting.query.filter_by(key=key).first()
+    if setting:
+        setting.value = value
+    else:
+        db.session.add(PlatformSetting(key=key, value=value))
+
+
 @admin_bp.route("/dashboard")
 @login_required
 @admin_required
@@ -47,6 +60,38 @@ def dashboard():
     }
     recent_inquiries = Inquiry.query.order_by(Inquiry.submitted_at.desc()).limit(5).all()
     return render_template("admin/dashboard.html", stats=stats, recent_inquiries=recent_inquiries)
+
+
+@admin_bp.route("/settings", methods=["GET", "POST"])
+@login_required
+@admin_required
+def settings():
+    if request.method == "POST":
+        student_fee = request.form.get("student_service_fee", "0").strip()
+        student_currency = request.form.get("student_service_fee_currency", "USD").strip().upper()
+        landlord_fee = request.form.get("landlord_listing_fee", current_app.config.get("LISTING_FEE", 20)).strip()
+        try:
+            if float(student_fee) < 0 or float(landlord_fee) < 0:
+                raise ValueError
+        except ValueError:
+            flash("Fees must be zero or a positive number.", "danger")
+            return redirect(url_for("admin_bp.settings"))
+        if not student_currency or len(student_currency) > 10:
+            flash("Enter a valid fee currency.", "danger")
+            return redirect(url_for("admin_bp.settings"))
+        save_setting("student_service_fee", student_fee)
+        save_setting("student_service_fee_currency", student_currency)
+        save_setting("landlord_listing_fee", landlord_fee)
+        db.session.commit()
+        flash("Business fee settings updated.", "success")
+        return redirect(url_for("admin_bp.settings"))
+
+    return render_template(
+        "admin/settings.html",
+        student_service_fee=setting_value("student_service_fee", os.environ.get("STUDENT_SERVICE_FEE", "0")),
+        student_service_fee_currency=setting_value("student_service_fee_currency", "USD"),
+        landlord_listing_fee=setting_value("landlord_listing_fee", str(current_app.config.get("LISTING_FEE", 20))),
+    )
 
 
 @admin_bp.route("/landlords")
