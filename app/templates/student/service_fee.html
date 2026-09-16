@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Student Service Fee · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card p-4">
+        <h1>Student Service Fee</h1>
+        <p class="text-muted">HomeBridge uses a service fee to support the accommodation search and application process.</p>
+
+        {% if confirmed %}
+          <div class="alert alert-success">Your student service fee has been confirmed. You can now apply for available properties.</div>
+          <a href="{{ url_for('public.properties') }}" class="btn btn-gold">Browse Accommodation</a>
+        {% elif fee <= 0 %}
+          <div class="alert alert-info">No student service fee has been configured yet. Applications are currently available without a service-fee payment.</div>
+          <a href="{{ url_for('public.properties') }}" class="btn btn-gold">Browse Accommodation</a>
+        {% else %}
+          <div class="border rounded p-3 mb-4">
+            <div class="text-muted">Current service fee</div>
+            <div class="fs-2 fw-bold">{{ '%.2f'|format(fee) }} {{ currency }}</div>
+          </div>
+
+          {% if pending_payment %}
+            <div class="alert alert-warning">Your payment reference <strong>{{ pending_payment.reference }}</strong> is awaiting admin verification. You do not need to submit it again.</div>
+          {% else %}
+            {% if payment_details %}
+              <div class="card bg-dark-subtle border-0 p-3 mb-4"><h5>Payment instructions</h5><div class="mb-0" style="white-space: pre-line;">{{ payment_details }}</div></div>
+            {% endif %}
+            <form method="post" action="{{ url_for('student.submit_service_fee') }}" enctype="multipart/form-data">
+              <div class="mb-3"><label class="form-label">Payment reference *</label><input class="form-control" name="reference" required placeholder="Transaction/reference number"></div>
+              <div class="mb-3"><label class="form-label">Proof of payment *</label><input class="form-control" type="file" name="proof_file" required accept="image/*,.pdf"></div>
+              <button class="btn btn-gold" type="submit">Submit Payment for Verification</button>
+            </form>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
