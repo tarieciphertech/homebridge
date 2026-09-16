@@ -1,1 +1,61 @@
-{% extends 'base.html' %}{% block title %}Manage Properties{% endblock %}{% block content %}<div class="container py-5"><div class="d-flex justify-content-between mb-4"><h2>Manage Properties</h2><div><a class="btn btn-gold" href="{{url_for('admin_bp.add_property')}}">+ Add Property</a> <a class="btn btn-outline-light" href="{{url_for('admin_bp.dashboard')}}">Dashboard</a></div></div><div class="card"><div class="table-responsive"><table class="table mb-0"><thead><tr><th>Property</th><th>Type</th><th>Listing</th><th>Price</th><th>City</th><th>Status</th><th>Actions</th></tr></thead><tbody>{% for p in properties %}<tr><td>{{p.title}}{% if p.is_managed %}<small class="d-block" style="color:#8bd38f">Managed</small>{% endif %}</td><td>{{p.property_type}}</td><td>{{p.listing_type}}</td><td style="color:var(--gold)">{{p.price}}</td><td>{{p.city}}</td><td>{% if p.is_published %}<span class="badge bg-success">Published</span>{% else %}<span class="badge bg-warning">Pending</span>{% endif %}{% if p.is_featured %} <span class="badge bg-secondary">Featured</span>{% endif %}</td><td><a class="btn btn-sm btn-outline-light" href="{{url_for('public.property_detail',property_id=p.id)}}" target="_blank">View</a> <a class="btn btn-sm btn-outline-light" href="{{url_for('admin_bp.publish_property',property_id=p.id)}}">{{'Unpublish' if p.is_published else 'Publish'}}</a> <a class="btn btn-sm btn-outline-light" href="{{url_for('admin_bp.feature_property',property_id=p.id)}}">{{'Unfeature' if p.is_featured else 'Feature'}}</a></td></tr>{% else %}<tr><td colspan="7" class="text-center text-muted py-4">No properties yet.</td></tr>{% endfor %}</tbody></table></div></div></div>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Manage Properties · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex justify-content-between mb-4">
+    <div><h2>Manage Properties</h2><p class="text-muted mb-0">Review landlord submissions before they appear in the marketplace.</p></div>
+    <a class="btn btn-outline-light" href="{{ url_for('admin_bp.dashboard') }}">Dashboard</a>
+  </div>
+
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table mb-0 align-middle">
+        <thead><tr><th>Property</th><th>Landlord</th><th>Type</th><th>Rent</th><th>Verification</th><th>Publication</th><th>Actions</th></tr></thead>
+        <tbody>
+        {% for p in properties %}
+          <tr>
+            <td>{{ p.title }}<small class="d-block text-muted">{{ p.location }}, {{ p.city }}</small></td>
+            <td>{{ p.landlord.name }}<small class="d-block text-muted">{{ p.landlord.email }}</small></td>
+            <td>{{ p.property_type|title }}</td>
+            <td>{{ p.price }}</td>
+            <td>
+              {% if p.is_verified %}<span class="badge bg-success">Verified</span>
+              {% else %}<span class="badge bg-warning text-dark">Pending / Rejected</span>{% endif %}
+            </td>
+            <td>
+              {% if p.is_published %}<span class="badge bg-success">Published</span>
+              {% else %}<span class="badge bg-secondary">Unpublished</span>{% endif %}
+              {% if p.is_featured %}<span class="badge bg-info text-dark">Featured</span>{% endif %}
+            </td>
+            <td>
+              <a class="btn btn-sm btn-outline-light mb-1" href="{{ url_for('public.property_detail', property_id=p.id) }}" target="_blank">Preview</a>
+              {% if not p.is_verified %}
+                <form method="post" action="{{ url_for('admin_bp.verify_property', property_id=p.id) }}" class="d-inline">
+                  <button class="btn btn-sm btn-success mb-1" type="submit">Verify</button>
+                </form>
+              {% else %}
+                <form method="post" action="{{ url_for('admin_bp.reject_property', property_id=p.id) }}" class="d-inline">
+                  <button class="btn btn-sm btn-outline-danger mb-1" type="submit">Reject</button>
+                </form>
+              {% endif %}
+              {% if p.is_verified %}
+                <form method="post" action="{{ url_for('admin_bp.publish_property', property_id=p.id) }}" class="d-inline">
+                  <button class="btn btn-sm btn-outline-light mb-1" type="submit">{{ 'Unpublish' if p.is_published else 'Publish' }}</button>
+                </form>
+                {% if p.is_published %}
+                  <form method="post" action="{{ url_for('admin_bp.feature_property', property_id=p.id) }}" class="d-inline">
+                    <button class="btn btn-sm btn-outline-light mb-1" type="submit">{{ 'Unfeature' if p.is_featured else 'Feature' }}</button>
+                  </form>
+                {% endif %}
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" class="text-center text-muted py-4">No properties yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
