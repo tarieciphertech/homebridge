@@ -315,6 +315,7 @@ The first Phase 3 code slice has now been committed to `main`:
 - Added payment status summaries split by currency so different currencies are not combined.
 - Added confirmed platform revenue breakdown by payment type and currency.
 - Added payment history filters for status and fee type.
+- Added student and landlord payment-history pages linked from their dashboards; each user can only see their own platform-payment records.
 - Changed payment confirm/reject actions to POST requests and made them accept pending payments only.
 - Removed the side effect that automatically approved a landlord account when their listing-fee payment was confirmed. Payment approval and landlord account approval are separate workflows.
 - Added navigation from the admin dashboard to the revenue page.
