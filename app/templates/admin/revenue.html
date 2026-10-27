@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Revenue & Finance · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4"><div><h1>Revenue & Finance</h1><p class="text-muted mb-0">Platform fees only. Rent payments are not included.</p></div><div class="d-flex gap-2"><a class="btn btn-outline-light" href="{{ url_for('admin_bp.payments') }}">Payment history</a><a class="btn btn-outline-light" href="{{ url_for('admin_bp.dashboard') }}">Dashboard</a></div></div>
+  <form method="get" class="card p-3 mb-4"><div class="row g-3 align-items-end">
+    <div class="col-md-3"><label class="form-label">Period</label><select name="period" id="period" class="form-select" onchange="document.getElementById('customDates').style.display=this.value==='custom'?'flex':'none'"><option value="today" {% if period=='today' %}selected{% endif %}>Today</option><option value="7d" {% if period=='7d' %}selected{% endif %}>Last 7 days</option><option value="30d" {% if period=='30d' %}selected{% endif %}>Last 30 days</option><option value="all" {% if period=='all' %}selected{% endif %}>All time</option><option value="custom" {% if period=='custom' %}selected{% endif %}>Custom range</option></select></div>
+    <div id="customDates" class="col-md-6 row g-2" style="display:{% if period=='custom' %}flex{% else %}none{% endif %}"><div class="col"><label class="form-label">From</label><input class="form-control" type="date" name="start_date" value="{{ start_date }}"></div><div class="col"><label class="form-label">To</label><input class="form-control" type="date" name="end_date" value="{{ end_date }}"></div></div>
+    <div class="col-md-3"><button class="btn btn-gold w-100">Apply period</button></div>
+  </div></form>
+  <h4 class="mb-3">Payment status summary</h4><div class="row g-3 mb-4">
+  {% for status,label in [('confirmed','Confirmed'),('pending','Pending'),('rejected','Rejected')] %}<div class="col-md-4"><div class="card p-4 h-100"><div class="text-muted">{{ label }}</div>{% for row in status_totals[status] %}<div class="d-flex justify-content-between mt-2"><span>{{ row.currency }}</span><strong>{{ '%.2f'|format(row.amount) }}</strong></div><small class="text-muted">{{ row.count }} payment(s)</small>{% else %}<div class="mt-2">0.00</div><small class="text-muted">No payments</small>{% endfor %}</div></div>{% endfor %}
+  </div>
+  <h4 class="mb-3">Confirmed platform revenue by fee type and currency</h4><div class="card mb-4"><div class="table-responsive"><table class="table mb-0"><thead><tr><th>Fee type</th><th>Currency</th><th>Confirmed payments</th><th>Revenue</th></tr></thead><tbody>
+  {% for row in confirmed_by_type %}<tr><td>{{ row.payment_type|replace('_',' ')|title }}</td><td>{{ row.currency }}</td><td>{{ row.count }}</td><td style="color:var(--gold)">{{ '%.2f'|format(row.amount) }}</td></tr>{% else %}<tr><td colspan="4" class="text-center text-muted py-4">No confirmed platform payments in this period.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+  <div class="d-flex justify-content-between align-items-center mb-3"><h4 class="mb-0">Payments in selected period</h4><span class="text-muted">{{ payments|length }} record(s)</span></div>
+  <div class="card"><div class="table-responsive"><table class="table mb-0 align-middle"><thead><tr><th>Submitted</th><th>User</th><th>Type</th><th>Amount</th><th>Status</th><th>Confirmed</th></tr></thead><tbody>
+  {% for p in payments %}<tr><td>{{ p.submitted_at.strftime('%Y-%m-%d') }}</td><td>{{ p.user.name if p.user else 'Unknown user' }}<br><small class="text-muted">{{ p.user.email if p.user else '' }}</small></td><td>{{ p.payment_type|replace('_',' ')|title }}</td><td>{{ p.amount }} {{ p.currency }}</td><td>{{ p.status|title }}</td><td>{{ p.confirmed_at.strftime('%Y-%m-%d') if p.confirmed_at else '—' }}</td></tr>{% else %}<tr><td colspan="6" class="text-center text-muted py-4">No payment records in this period.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+</div>
+{% endblock %}
