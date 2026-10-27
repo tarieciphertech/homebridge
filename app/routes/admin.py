@@ -1,9 +1,10 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from functools import wraps
 import os
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from sqlalchemy import func
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -112,38 +113,123 @@ def approve_landlord(user_id):
     return redirect(url_for("admin_bp.landlords"))
 
 
+@admin_bp.route("/revenue")
+@login_required
+@admin_required
+def revenue():
+    period = request.args.get("period", "30d")
+    today = date.today()
+    start_date = None
+    end_date = today + timedelta(days=1)
+
+    if period == "today":
+        start_date = today
+    elif period == "7d":
+        start_date = today - timedelta(days=6)
+    elif period == "30d":
+        start_date = today - timedelta(days=29)
+    elif period == "custom":
+        try:
+            start_date = date.fromisoformat(request.args.get("start_date", ""))
+            last_day = date.fromisoformat(request.args.get("end_date", ""))
+            if last_day < start_date:
+                raise ValueError
+            end_date = last_day + timedelta(days=1)
+        except ValueError:
+            flash("Choose a valid custom date range.", "warning")
+            return redirect(url_for("admin_bp.revenue", period="30d"))
+    else:
+        period = "all"
+        start_date = None
+        end_date = None
+
+    query = Payment.query
+    if start_date:
+        query = query.filter(Payment.submitted_at >= datetime.combine(start_date, datetime.min.time()))
+    if end_date:
+        query = query.filter(Payment.submitted_at < datetime.combine(end_date, datetime.min.time()))
+
+    payments = query.order_by(Payment.submitted_at.desc()).all()
+    status_totals = {}
+    for status in ("confirmed", "pending", "rejected"):
+        rows = query.filter(Payment.status == status).with_entities(
+            Payment.currency, func.count(Payment.id), func.coalesce(func.sum(Payment.amount), 0)
+        ).group_by(Payment.currency).all()
+        status_totals[status] = [
+            {"currency": currency, "count": count, "amount": amount}
+            for currency, count, amount in rows
+        ]
+
+    rows = query.filter(Payment.status == "confirmed").with_entities(
+        Payment.payment_type, Payment.currency, func.count(Payment.id),
+        func.coalesce(func.sum(Payment.amount), 0)
+    ).group_by(Payment.payment_type, Payment.currency).order_by(
+        Payment.payment_type, Payment.currency
+    ).all()
+
+    return render_template(
+        "admin/revenue.html",
+        payments=payments,
+        period=period,
+        start_date=start_date.isoformat() if start_date else "",
+        end_date=(end_date - timedelta(days=1)).isoformat() if end_date else "",
+        status_totals=status_totals,
+        confirmed_by_type=[
+            {"payment_type": kind, "currency": currency, "count": count, "amount": amount}
+            for kind, currency, count, amount in rows
+        ],
+    )
+
+
 @admin_bp.route("/payments")
 @login_required
 @admin_required
 def payments():
-    return render_template("admin/payments.html", payments=Payment.query.order_by(Payment.submitted_at.desc()).all())
+    status = request.args.get("status", "all")
+    payment_type = request.args.get("type", "all")
+    query = Payment.query
+    if status in {"pending", "confirmed", "rejected"}:
+        query = query.filter_by(status=status)
+    else:
+        status = "all"
+    if payment_type in {"student_service_fee", "landlord_listing_fee"}:
+        query = query.filter_by(payment_type=payment_type)
+    else:
+        payment_type = "all"
+    payments = query.order_by(Payment.submitted_at.desc()).all()
+    return render_template(
+        "admin/payments.html", payments=payments,
+        selected_status=status, selected_type=payment_type
+    )
 
 
-@admin_bp.route("/confirm-payment/<int:payment_id>")
+@admin_bp.route("/confirm-payment/<int:payment_id>", methods=["POST"])
 @login_required
 @admin_required
 def confirm_payment(payment_id):
     payment = Payment.query.get_or_404(payment_id)
-    payment.status = "confirmed"
-    payment.confirmed_at = datetime.utcnow()
-    if payment.payment_type == "landlord_listing_fee":
-        user = User.query.get(payment.user_id)
-        if user:
-            user.is_approved = True
-    db.session.commit()
-    flash("Payment confirmed.", "success")
-    return redirect(url_for("admin_bp.payments"))
+    if payment.status != "pending":
+        flash("Only pending payments can be confirmed.", "warning")
+    else:
+        payment.status = "confirmed"
+        payment.confirmed_at = datetime.utcnow()
+        db.session.commit()
+        flash("Payment confirmed. Account approval remains a separate action.", "success")
+    return redirect(request.referrer or url_for("admin_bp.payments"))
 
 
-@admin_bp.route("/reject-payment/<int:payment_id>")
+@admin_bp.route("/reject-payment/<int:payment_id>", methods=["POST"])
 @login_required
 @admin_required
 def reject_payment(payment_id):
     payment = Payment.query.get_or_404(payment_id)
-    payment.status = "rejected"
-    db.session.commit()
-    flash("Payment rejected.", "warning")
-    return redirect(url_for("admin_bp.payments"))
+    if payment.status != "pending":
+        flash("Only pending payments can be rejected.", "warning")
+    else:
+        payment.status = "rejected"
+        db.session.commit()
+        flash("Payment rejected.", "warning")
+    return redirect(request.referrer or url_for("admin_bp.payments"))
 
 
 @admin_bp.route("/properties")
