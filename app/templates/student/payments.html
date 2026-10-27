@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}My Payment History · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4"><div><h1>My Payment History</h1><p class="text-muted mb-0">Track HomeBridge service-fee payments and verification status.</p></div><a class="btn btn-outline-light" href="{{ url_for('student.dashboard') }}">Dashboard</a></div>
+  <div class="card"><div class="table-responsive"><table class="table mb-0 align-middle"><thead><tr><th>Submitted</th><th>Payment type</th><th>Amount</th><th>Reference</th><th>Status</th><th>Confirmed</th></tr></thead><tbody>
+  {% for p in payments %}<tr><td>{{ p.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ p.payment_type|replace('_',' ')|title }}</td><td>{{ p.amount }} {{ p.currency }}</td><td>{{ p.reference or '—' }}</td><td>{% if p.status=='confirmed' %}<span class="badge bg-success">Confirmed</span>{% elif p.status=='rejected' %}<span class="badge bg-danger">Rejected</span>{% else %}<span class="badge bg-warning text-dark">Pending</span>{% endif %}</td><td>{{ p.confirmed_at.strftime('%Y-%m-%d %H:%M') if p.confirmed_at else '—' }}</td></tr>{% else %}<tr><td colspan="6" class="text-center text-muted py-4">You have no platform payments yet.</td></tr>{% endfor %}
+  </tbody></table></div></div>
+</div>
+{% endblock %}
