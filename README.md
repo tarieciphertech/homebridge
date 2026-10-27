@@ -306,6 +306,35 @@ A `302` response redirecting `/` to `/properties` is expected behavior.
 
 ## Next planned development phase
 
+### Phase 3 — implementation in progress (27 October 2026)
+
+The first Phase 3 code slice has now been committed to `main`:
+
+- Added an admin revenue page at `/admin/revenue`.
+- Added date presets (today, last 7 days, last 30 days, all time) and a custom date range.
+- Added payment status summaries split by currency so different currencies are not combined.
+- Added confirmed platform revenue breakdown by payment type and currency.
+- Added payment history filters for status and fee type.
+- Changed payment confirm/reject actions to POST requests and made them accept pending payments only.
+- Removed the side effect that automatically approved a landlord account when their listing-fee payment was confirmed. Payment approval and landlord account approval are separate workflows.
+- Added navigation from the admin dashboard to the revenue page.
+
+**Not yet verified on the live Oracle instance.** These changes are in GitHub; deploy them to the Oracle test host and run the checks below before treating Phase 3 as production-ready.
+
+#### Phase 3 deployment and smoke test
+
+```bash
+cd /opt/homebridge/app
+git pull origin main
+cd /opt/homebridge
+docker compose up -d --build
+docker compose ps
+docker logs --tail=100 homebridge
+curl -I https://homebridge.cyphertech.co.zw/admin/revenue
+```
+
+The revenue page requires an authenticated admin session, so a redirect to login when using unauthenticated `curl` is expected. Log in as an admin and verify `/admin/revenue`, the period filters, `/admin/payments` filters, and confirm/reject actions in a browser. Confirm a landlord listing-fee payment and verify the landlord account's approval flag does not change automatically.
+
 ### Phase 3 — Finance and revenue
 
 Planned work includes:
