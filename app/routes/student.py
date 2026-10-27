@@ -61,6 +61,13 @@ def dashboard():
     return render_template("student/dashboard.html", applications=applications, payments=payments, featured_properties=featured, service_fee=student_service_fee(), service_fee_paid=has_confirmed_service_fee())
 
 
+@student.route("/payments")
+@student_required
+def payment_history():
+    payments = Payment.query.filter_by(user_id=current_user.id).order_by(Payment.submitted_at.desc()).all()
+    return render_template("student/payments.html", payments=payments)
+
+
 @student.route("/service-fee")
 @student_required
 def service_fee():
