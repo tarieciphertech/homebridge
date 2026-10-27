@@ -4,7 +4,7 @@
 <div class="container py-5">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div><h1>Student Dashboard</h1><p class="text-muted mb-0">Find accommodation and manage your rental journey.</p></div>
-    <div class="d-flex gap-2"><a href="{{ url_for('student.applications') }}" class="btn btn-outline-light">My Applications</a><a href="{{ url_for('public.properties') }}" class="btn btn-gold">Find Accommodation</a></div>
+    <div class="d-flex gap-2"><a href="{{ url_for('student.applications') }}" class="btn btn-outline-light">My Applications</a><a href="{{ url_for('student.payment_history') }}" class="btn btn-outline-light">Payment History</a><a href="{{ url_for('public.properties') }}" class="btn btn-gold">Find Accommodation</a></div>
   </div>
   <div class="row g-3 mb-4">
     <div class="col-md-3"><div class="card stat"><div class="stat-label">Applications</div><div class="stat-value">{{ applications|length }}</div></div></div>
