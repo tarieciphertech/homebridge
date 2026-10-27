@@ -231,7 +231,7 @@ def confirm_payment(payment_id):
         payment.confirmed_at = datetime.utcnow()
         db.session.commit()
         flash("Payment confirmed. Account approval remains a separate action.", "success")
-    return redirect(request.referrer or url_for("admin_bp.payments"))
+    return redirect(url_for("admin_bp.payments"))
 
 
 @admin_bp.route("/reject-payment/<int:payment_id>", methods=["POST"])
