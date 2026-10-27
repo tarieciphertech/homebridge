@@ -16,6 +16,61 @@ HomeBridge is a student-focused accommodation marketplace and property-managemen
 
 > **Environment note:** `homebridge.co.zw` is the intended public production domain. The currently deployed and verified development/testing environment is `homebridge.cyphertech.co.zw` on the Oracle instance. The student, landlord, admin, and API URLs above describe the planned/public route structure and should not be assumed to be independently deployed unless verified.
 
+## Latest team handover (27 October 2026)
+
+This section is the current working status for Shelton and anyone continuing development.
+
+### Verified deployment status
+
+- The Oracle development/test site is reachable over HTTPS: https://homebridge.cyphertech.co.zw/properties
+- The public accommodation page renders its HomeBridge navigation, search filters, and the “Student Accommodation” heading.
+- The page currently reports **0 listings**. This can be expected when no properties meet the public listing criteria (published and available); it is not by itself proof that the database or listing route is broken.
+- The expected root behavior is a redirect to `/properties`.
+- The deployment uses the existing shared Oracle server. Do not rebuild the host or change shared Nginx/PostgreSQL/Docker settings without checking other services first.
+
+### Account display-name issue to investigate
+
+The live page showed **“Lexxi Cipher”** in its visible navigation/account area. GitHub code searches for `Lexxi`, `lexxi`, and `agent` returned no matches in the active repository at the time of checking. This suggests the displayed name may be coming from a persisted user record or session, but that has **not yet been confirmed**.
+
+Before changing anything:
+1. Inspect the HomeBridge `user` table in the `homebridge_dev` database.
+2. Identify which account has that display name and confirm its role/email.
+3. Confirm whether it is the intended development administrator before renaming or modifying it.
+4. Do not delete an account or reset credentials without verifying account ownership and preserving access.
+5. Recheck the live page after any approved correction.
+
+Do not expose database passwords, session secrets, or admin credentials in this README, commits, screenshots, or chat.
+
+### Current implementation status
+
+Implemented foundations include student/landlord authentication, role-based dashboards, property submissions and image uploads, admin property review/publication, student applications, configurable student service and landlord listing fees, payment-proof submissions, admin payment review, inquiries, and platform settings.
+
+The database has tables for users, properties/images, applications, inquiries, platform payments/settings, tenancies, rent payments, and maintenance requests. The presence of tenancy/rent tables does **not** mean the complete rental lifecycle has been finished.
+
+### Next work — Phase 3: Finance and revenue
+
+The next development phase should focus on:
+
+1. Build an admin revenue dashboard based on **confirmed platform payments only**.
+2. Show totals by currency and payment type; do not combine different currencies into a misleading single total.
+3. Show confirmed, pending, and rejected amounts/counts separately.
+4. Add date filters (today, last 7 days, last 30 days, all time, and/or custom range).
+5. Add student and landlord payment history with payment type, amount/currency, status, reference, submitted date, and confirmation date where available.
+6. Make payment-proof access admin-only and handle missing files safely.
+7. Keep landlord account approval separate from confirming a landlord listing-fee payment. A payment confirmation must not silently approve the account.
+8. Consider recording which admin confirmed/rejected a payment (`confirmed_by`) and the decision timestamp.
+9. Add dashboard navigation to revenue and payment history, then test all status/date filters against known records.
+
+**Finance rules:** only `Payment` records with `status = confirmed` count as platform revenue. Pending and rejected payments are not revenue. Rent-payment records belong to the landlord/tenant rental flow and must not be counted as HomeBridge platform-fee revenue unless a separate, explicitly defined business rule is added.
+
+### After Phase 3 — Phase 4: Rental management
+
+Implement and test the application decision workflow, approved application to tenancy creation, rent schedules, rent-payment submission and verification, student/landlord rent history, and admin oversight. Avoid creating duplicate tenancies when an application is processed more than once.
+
+### Deployment and verification checklist
+
+After a change is merged/pushed to `main`, update the Oracle test host using the deployment commands below, then verify the changed pages and relevant role permissions. Do not claim a feature is deployed just because its code is committed; verify the live endpoint and workflow.
+
 ## Project status
 
 **Current stage: active development / testing**
