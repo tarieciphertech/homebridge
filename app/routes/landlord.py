@@ -103,6 +103,13 @@ def dashboard():
     return render_template("landlord/dashboard.html", properties=properties, applications=applications, maintenance=maintenance, rent_payments=rent_payments, platform_payments=platform_payments, listing_fee=listing_fee(), listing_fee_paid=has_confirmed_listing_fee())
 
 
+@landlord.route("/payments")
+@landlord_required
+def payment_history():
+    payments = Payment.query.filter_by(user_id=current_user.id).order_by(Payment.submitted_at.desc()).all()
+    return render_template("landlord/payments.html", payments=payments)
+
+
 @landlord.route("/listing-fee")
 @landlord_required
 def listing_fee_page():
