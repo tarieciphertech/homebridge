@@ -150,9 +150,25 @@ def revenue():
         query = query.filter(Payment.submitted_at < datetime.combine(end_date, datetime.min.time()))
 
     payments = query.order_by(Payment.submitted_at.desc()).all()
+
+    # Pending/rejected totals are grouped by submission date; recognized revenue
+    # is grouped by confirmation date, which reflects when the platform earned it.
+    confirmed_query = Payment.query.filter(
+        Payment.status == "confirmed", Payment.confirmed_at.isnot(None)
+    )
+    if start_date:
+        confirmed_query = confirmed_query.filter(
+            Payment.confirmed_at >= datetime.combine(start_date, datetime.min.time())
+        )
+    if end_date:
+        confirmed_query = confirmed_query.filter(
+            Payment.confirmed_at < datetime.combine(end_date, datetime.min.time())
+        )
+
     status_totals = {}
     for status in ("confirmed", "pending", "rejected"):
-        rows = query.filter(Payment.status == status).with_entities(
+        status_query = confirmed_query if status == "confirmed" else query.filter(Payment.status == status)
+        rows = status_query.with_entities(
             Payment.currency, func.count(Payment.id), func.coalesce(func.sum(Payment.amount), 0)
         ).group_by(Payment.currency).all()
         status_totals[status] = [
@@ -160,7 +176,7 @@ def revenue():
             for currency, count, amount in rows
         ]
 
-    rows = query.filter(Payment.status == "confirmed").with_entities(
+    rows = confirmed_query.with_entities(
         Payment.payment_type, Payment.currency, func.count(Payment.id),
         func.coalesce(func.sum(Payment.amount), 0)
     ).group_by(Payment.payment_type, Payment.currency).order_by(
