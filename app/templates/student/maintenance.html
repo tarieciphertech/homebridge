@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Maintenance · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="mb-4"><p class="hb-kicker mb-2">Tenancy support</p><h1>Maintenance requests</h1><p class="text-muted">Report an issue at your current accommodation and follow the landlord's updates.</p></div>
+  {% if tenancies %}
+  <div class="row g-4 mb-4">
+    {% for tenancy in tenancies %}
+    <div class="col-lg-6"><div class="card p-4 h-100">
+      <h3 class="h4">{{ tenancy.property.title }}{% if tenancy.room_label %} · {{ tenancy.room_label }}{% endif %}</h3>
+      <p class="text-muted small">{{ tenancy.property.location }}, {{ tenancy.property.city }}</p>
+      <form method="post" action="{{ url_for('student.report_maintenance', tenancy_id=tenancy.id) }}">
+        <div class="mb-3"><label class="form-label">Issue title</label><input class="form-control" name="title" maxlength="200" required placeholder="e.g. Leaking kitchen tap"></div>
+        <div class="mb-3"><label class="form-label">Describe the issue</label><textarea class="form-control" name="description" rows="3" maxlength="5000" required></textarea></div>
+        <div class="mb-3"><label class="form-label">Priority</label><select class="form-select" name="priority"><option value="normal">Normal</option><option value="low">Low</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
+        <button class="btn btn-gold" type="submit">Send maintenance request</button>
+      </form>
+    </div></div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info">You need an active tenancy before you can submit a maintenance request.</div>
+  {% endif %}
+  <div class="card p-4"><h2 class="h3 mb-3">My reported issues</h2>
+    {% for item in requests %}
+    <div class="border-bottom py-3"><div class="d-flex justify-content-between flex-wrap gap-2"><strong>{{ item.title }}</strong><span class="badge text-bg-secondary">{{ item.status|replace('_',' ')|title }}</span></div>
+      <div class="small text-muted">{{ item.property.title }} · {{ item.reported_at.strftime('%d %b %Y %H:%M') }} · Priority: {{ item.priority|title }}</div>
+      <p class="mb-1 mt-2">{{ item.description }}</p>
+      {% if item.resolution_notes %}<div class="alert alert-light mt-2 mb-0"><strong>Landlord update:</strong> {{ item.resolution_notes }}</div>{% endif %}
+    </div>
+    {% else %}<p class="text-muted mb-0">You have not reported any maintenance issues yet.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}
