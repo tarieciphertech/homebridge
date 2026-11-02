@@ -1,5 +1,20 @@
 # HomeBridge
 
+## Product direction — Zimbabwe-first student accommodation
+
+HomeBridge is being shaped around students and families finding suitable accommodation in Zimbabwe when education takes them away from home. The initial audience includes university, college, polytechnic and secondary-school students, as well as international students studying in Zimbabwe. Parent/guardian involvement should be considered in the experience for younger students.
+
+The marketplace should organize discovery around:
+- Zimbabwean cities and education destinations, with initial market focus on Harare, Bulawayo and Gweru.
+- Universities, colleges, polytechnics and secondary schools, including the campus or area served.
+- Private rooms, shared houses, student lodges, hostels, boarding accommodation, apartments and houses.
+- Transparent rent amounts, currencies and payment periods.
+- Clear location, campus distance, room availability, amenities, house rules and listing verification.
+
+The first implementation slice adds institution/campus search and landlord listing fields for nearby education institutions, campus/area, distance in kilometres, rent currency (USD, ZiG or ZAR), and rent period (month, week or term). These fields are stored in a separate PropertyLocalDetails table so the existing property table and existing records do not need destructive changes. The app's existing db.create_all() startup creates this new table automatically.
+
+This is a Zimbabwe-first product direction, not a claim that all Zimbabwean institutions or accommodation inventory have already been onboarded. Do not invent listings or imply a property is verified unless an admin has completed the review process.
+
 HomeBridge is a student-focused accommodation marketplace and property-management platform for Zimbabwe.
 
 ## Current URLs
@@ -62,6 +77,15 @@ The next development phase should focus on:
 9. Add dashboard navigation to revenue and payment history, then test all status/date filters against known records.
 
 **Finance rules:** only `Payment` records with `status = confirmed` count as platform revenue. Pending and rejected payments are not revenue. Rent-payment records belong to the landlord/tenant rental flow and must not be counted as HomeBridge platform-fee revenue unless a separate, explicitly defined business rule is added.
+
+### Next — Zimbabwe-first marketplace rollout
+
+- Validate institution/campus search and local rent terms on the live development deployment.
+- Build and maintain a verified directory of Zimbabwean institutions and campuses, starting with Harare, Bulawayo and Gweru.
+- Add student profile preferences for institution, campus, budget and intended move-in period.
+- Add parent/guardian-assisted inquiry and application support for younger students, with appropriate privacy and safeguarding controls.
+- Expand admin review and reporting to make institution coverage and verified inventory visible.
+- Recruit real landlords and obtain consented property photographs before publishing inventory.
 
 ### After Phase 3 — Phase 4: Rental management
 
