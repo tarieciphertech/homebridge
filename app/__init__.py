@@ -35,15 +35,28 @@ def create_app():
     from app.routes.student import student
     from app.routes.landlord import landlord
     from app.routes.admin import admin_bp
+    from app.routes.notifications import notifications_bp
 
     app.register_blueprint(public)
     app.register_blueprint(auth)
     app.register_blueprint(student)
     app.register_blueprint(landlord)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(notifications_bp)
+
+    @app.context_processor
+    def inject_notification_count():
+        from flask_login import current_user
+        from app.models import Notification
+        count = 0
+        if current_user.is_authenticated:
+            count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+        return {"unread_notification_count": count}
 
     os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], "properties"), exist_ok=True)
     os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], "proofs"), exist_ok=True)
+    os.makedirs(app.config["PRIVATE_UPLOAD_FOLDER"], mode=0o700, exist_ok=True)
+    os.chmod(app.config["PRIVATE_UPLOAD_FOLDER"], 0o700)
 
     with app.app_context():
         db.create_all()

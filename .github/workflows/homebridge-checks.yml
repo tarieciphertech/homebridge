@@ -1,0 +1,83 @@
+name: HomeBridge feature checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - main
+      - "feature/**"
+
+jobs:
+  app-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install application dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Compile Python modules
+        run: python -m compileall -q app
+      - name: Create app and validate routes, schema, and templates
+        env:
+          FLASK_ENV: development
+          DATABASE_URL: sqlite:////tmp/homebridge-ci.sqlite
+          SECRET_KEY: ci-only-test-key
+          ADMIN_PASSWORD: ci-only-test-password
+        run: |
+          python - <<'PY'
+          from sqlalchemy import inspect
+          from app import create_app
+          from app.models import MaintenanceRequest, Notification, RentalAgreement, RentPayment, db
+
+          app = create_app()
+          rules = {rule.endpoint for rule in app.url_map.iter_rules()}
+          expected = {
+              "landlord.rental_agreement",
+              "student.rental_agreement",
+              "landlord.review_rental_agreement",
+              "student.review_rental_agreement",
+              "landlord.upload_signed_rental_agreement",
+              "student.upload_signed_rental_agreement",
+              "landlord.download_signed_rental_agreement",
+              "student.download_signed_rental_agreement",
+              "admin_bp.agreements",
+              "admin_bp.download_signed_agreement",
+              "notifications.index",
+              "notifications.open_notification",
+              "notifications.mark_all_read",
+              "student.maintenance",
+              "student.report_maintenance",
+              "landlord.maintenance",
+              "landlord.update_maintenance",
+              "student.rent_payments",
+              "student.submit_rent_payment",
+              "student.download_rent_payment_proof",
+              "landlord.rent_payments",
+              "landlord.review_rent_payment",
+              "landlord.download_rent_payment_proof",
+              "landlord.tenancies",
+              "student.tenancies",
+          }
+          missing = expected - rules
+          assert not missing, f"Missing route endpoints: {sorted(missing)}"
+
+          with app.app_context():
+              tables = inspect(db.engine).get_table_names()
+              assert RentalAgreement.__tablename__ in tables, "RentalAgreement table missing"
+              assert Notification.__tablename__ in tables, "Notification table missing"
+              maintenance_columns = {column["name"] for column in inspect(db.engine).get_columns(MaintenanceRequest.__tablename__)}
+              rent_columns = {column["name"] for column in inspect(db.engine).get_columns(RentPayment.__tablename__)}
+              assert "cost_currency" in maintenance_columns, "Maintenance cost currency column missing"
+              assert {"reviewed_by_id", "reviewed_at", "review_notes", "period_start", "period_end"} <= rent_columns, "Rent payment review/period columns missing"
+              for template in app.jinja_env.list_templates():
+                  app.jinja_env.get_template(template)
+
+          print("HomeBridge startup, agreement schema, routes, and Jinja templates passed.")
+          PY

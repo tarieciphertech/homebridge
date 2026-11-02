@@ -37,7 +37,7 @@ This section supersedes older status notes where they conflict. It is the latest
 
 ### Executive status
 
-<badge>Development milestone verified</badge>
+**Status:** Development milestone verified.
 
 The latest completed milestone is **tenancy onboarding**. The landlord offer flow, student accept/decline flow, and tenancy dashboards were deployed to the Oracle development environment and confirmed through browser testing by the project team.
 
@@ -76,16 +76,39 @@ Keep these backups until the migration and tenancy workflows have had sufficient
 
 A HomeBridge tenancy record stores the details accepted through the platform. It is **not** a signed lease, legal rental contract, proof of rent payment, or confirmation that rent has been collected. The landlord and student must still complete their separate written rental agreement and handle rent payments through their agreed process.
 
-### Next priorities — proposed for the next weekly cycle
+### Next priorities — current work in progress
 
-These are planned items, not claims of completed functionality:
+**Rental agreement lifecycle is under development on `feature/agreement-lifecycle`; it is not merged into `main` or deployed to Oracle.** The current development slice adds:
+- Role-protected agreement preview routes for the landlord who owns the tenancy and the student attached to it.
+- A per-tenancy `RentalAgreement` workflow record.
+- Separate landlord and student review acknowledgements and timestamps.
+- Status progression: `draft` → `under_review` → `ready_for_signing` → `signed_copy_uploaded`.
+- Signed-PDF upload after both parties have reviewed the draft.
+- Private signed-document storage outside the public static directory, with role-checked downloads for the landlord, student, and admin.
+- An admin oversight page for agreement status and signed-copy access.
+- A shared in-app notification inbox with unread counts, mark-as-read actions, and account-scoped notification ownership.
+- Notifications for new applications, application decisions and withdrawals, viewing proposals/cancellations/responses, and accepted or declined tenancy offers.
+- Student maintenance reporting for active tenancies, including issue title, description and priority.
+- Landlord maintenance management with open/in-progress/resolved/closed states, optional cost tracking, resolution notes, and student notifications.
+- Agreement review and signed-copy upload events also notify the other tenancy party.
+- Tenants can submit rent payment records for an active tenancy, with the amount, tenancy currency, payment month, optional reference, and private receipt upload.
+- Landlords can review rent submissions as pending, confirmed or rejected, add notes, and notify the student of the outcome.
+- Rent payment proofs are stored privately and downloaded only by the relevant tenant or the owning landlord. These rent records remain separate from HomeBridge platform-fee revenue.
+- Rent submissions capture a coverage date range, prevent overlapping pending/confirmed periods for the same tenancy, and enforce the tenancy's agreed currency.
+- PostgreSQL schema additions for existing maintenance/rent-payment tables are documented in `migrations/20261102_tenancy_workflows.sql`; take a backup and apply this migration before deploying the branch. New `RentalAgreement` and `Notification` tables are created by the existing SQLAlchemy startup initialization.
+- Existing property images and platform payment proofs retain their original public-upload storage paths; only signed rental agreements use the separate private document directory.
+- CI checks for Python compilation, Flask startup, agreement routes, database table creation, and Jinja template loading.
 
-1. **Formal rental agreement workflow:** prepare a downloadable agreement using the accepted tenancy details, with clear review and signature steps. Confirm the appropriate legal wording before treating it as a binding contract.
-2. **Notifications:** notify landlords and students when an offer is sent, accepted, declined, or approaching its start date.
-3. **Tenancy edge-case QA:** test invalid date ranges, expired offers, duplicate submissions, repeated clicks, access by the wrong user, and overlapping tenancy scenarios.
-4. **Tenancy management improvements:** review how parties view tenancy status, key dates, rent terms, and contact details.
-5. **Regression testing:** recheck application approval, viewing coordination, tenancy offer, student response, and dashboard navigation after subsequent changes.
-6. **Weekly planning:** agree which of these items should be prioritized before starting the next implementation slice.
+Review acknowledgements are **not electronic signatures**. Uploading a signed PDF does not prove that signatures are genuine or that the agreement is legally valid. HomeBridge does not collect rent or verify payment through this workflow. The draft still requires the parties to complete payment due dates, deposit, utilities, notice, inventory, and any other required terms. Legal wording must be reviewed for the applicable jurisdiction before production use.
+
+Before deployment, complete role-isolation tests, review-state transition tests, PDF upload/download validation, print layout checks, and regression tests for existing tenancy workflows. Confirm private upload directory permissions and backup coverage.
+
+Remaining proposed work:
+1. Add notifications when an agreement is ready for review and when the parties complete their offline signing process (if that process is brought into the platform).
+2. Test expired offers, repeated submissions, invalid dates, and overlapping tenancy scenarios.
+3. Review tenancy status, key dates, rent terms, and contact details.
+4. Regression-test application approval, viewing coordination, offer acceptance, and tenancy dashboards.
+5. Agree the next weekly priorities and owners.
 
 ### Weekly project update agreement
 
@@ -167,7 +190,7 @@ The development environment is intentionally separate from the public production
 - View property photos, amenities, rules and availability.
 - Submit and track accommodation applications.
 - Withdraw pending applications.
-- Respond to tenancy offers and view tenancy details.
+- Respond to tenancy offers, view tenancy details, and prepare a printable draft rental agreement for an accepted tenancy (feature branch; not yet deployed).
 - Submit student service-fee payment proof when a fee is configured.
 
 ### Landlords
@@ -180,7 +203,7 @@ The development environment is intentionally separate from the public production
 - Track verification and publication status.
 - Review applications and coordinate viewings.
 - Send tenancy offers for approved applications after viewing confirmation.
-- View tenancy details.
+- View tenancy details and prepare a printable draft rental agreement for an accepted tenancy (feature branch; not yet deployed).
 - Submit listing-fee payment proof when a listing fee is configured.
 
 ### Admins
@@ -238,6 +261,7 @@ The development environment is intentionally separate from the public production
 - Students can accept or decline offers from **My Applications**.
 - Accepting creates a tenancy record; declining does not.
 - Student and landlord tenancy pages are linked from their dashboards.
+- A printable draft rental agreement preview is available in the feature branch to both parties through role-checked routes; it is not yet merged/deployed and does not capture electronic signatures.
 - New tenancy records retain `rent_amount`, `rent_currency` and `rent_period`; legacy `monthly_rent` remains nullable for compatibility and is populated only for monthly offers.
 - An application-linked unique tenancy reference prevents duplicate tenancy creation.
 

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Notifications · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+    <div><p class="hb-kicker mb-2">Your account</p><h1 class="mb-1">Notifications</h1><p class="text-muted mb-0">Updates about your applications, viewings and tenancy offers.</p></div>
+    {% if unread_count %}<form method="post" action="{{ url_for('notifications.mark_all_read') }}"><button class="btn btn-outline-dark" type="submit">Mark all as read</button></form>{% endif %}
+  </div>
+  <div class="card p-3 p-md-4">
+    {% for item in notifications %}
+      <div class="d-flex gap-3 py-3 {% if not loop.last %}border-bottom{% endif %}">
+        <div class="pt-1"><span class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width:40px;height:40px;background:{% if item.is_read %}#edf0e9{% else %}#e4d2ad{% endif %};color:#203b30"><i class="fa-solid {% if item.event_type.startswith('tenancy') %}fa-file-contract{% elif item.event_type.startswith('viewing') %}fa-calendar-check{% else %}fa-bell{% endif %}"></i></span></div>
+        <div class="flex-grow-1">
+          <div class="d-flex justify-content-between flex-wrap gap-2"><strong>{{ item.title }}</strong>{% if not item.is_read %}<span class="badge text-bg-success">New</span>{% endif %}</div>
+          <p class="mb-1 mt-1">{{ item.message }}</p>
+          <small class="text-muted">{{ item.created_at.strftime('%d %b %Y · %H:%M UTC') }}</small>
+        </div>
+        <div class="align-self-center">
+          {% if item.target_url %}<form method="post" action="{{ url_for('notifications.open_notification', notification_id=item.id) }}"><button class="btn btn-sm btn-outline-dark" type="submit">Open</button></form>{% elif not item.is_read %}<form method="post" action="{{ url_for('notifications.open_notification', notification_id=item.id) }}"><button class="btn btn-sm btn-outline-dark" type="submit">Read</button></form>{% endif %}
+        </div>
+      </div>
+    {% else %}
+      <div class="text-center py-5"><i class="fa-regular fa-bell-slash fs-1 text-muted mb-3"></i><h3>You're all caught up</h3><p class="text-muted mb-0">New updates will appear here.</p></div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

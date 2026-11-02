@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Draft Rental Agreement · HomeBridge</title>
+<style>
+:root{--ink:#202a24;--green:#244735;--gold:#b99a61;--muted:#66736a;--line:#d9ded8}
+*{box-sizing:border-box}body{margin:0;background:#eef1ed;color:var(--ink);font:14px/1.6 Arial,sans-serif}.toolbar{max-width:900px;margin:22px auto;display:flex;justify-content:space-between;gap:12px;align-items:center}.toolbar a,.toolbar button{border:0;border-radius:6px;padding:11px 16px;background:var(--green);color:#fff;text-decoration:none;font-weight:700;cursor:pointer}.sheet{max-width:900px;margin:0 auto 40px;background:#fff;padding:54px 64px;box-shadow:0 8px 35px #172b2515}.top{display:flex;justify-content:space-between;gap:20px;border-bottom:3px solid var(--green);padding-bottom:20px}.brand{font-size:23px;font-weight:800;color:var(--green);letter-spacing:.04em}.kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:700}.docref{text-align:right;color:var(--muted);font-size:12px}.title{text-align:center;margin:30px 0}.title h1{font-family:Georgia,serif;font-size:27px;color:var(--green);margin:4px}.notice{background:#f7f4eb;border-left:4px solid var(--gold);padding:12px 16px;margin:22px 0;font-size:12px}.section{margin:24px 0}.section h2{font:700 16px Georgia,serif;color:var(--green);border-bottom:1px solid var(--line);padding-bottom:7px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field{padding:10px 12px;border:1px solid var(--line);border-radius:5px}.field small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em}.field strong{display:block;margin-top:3px}.terms{white-space:pre-wrap;border:1px solid var(--line);padding:14px;border-radius:5px;min-height:60px}.clause{margin:12px 0}.signature-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:35px}.signature{padding-top:45px;border-bottom:1px solid #333}.signature-label{font-size:12px;color:var(--muted);margin-top:7px}.footer{border-top:1px solid var(--line);margin-top:42px;padding-top:12px;color:var(--muted);font-size:11px;text-align:center}
+@media(max-width:650px){.sheet{padding:28px 20px;margin:0 8px 20px}.toolbar{margin:12px;flex-wrap:wrap}.grid,.signature-grid{grid-template-columns:1fr}.top{flex-direction:column}.docref{text-align:left}}
+@media print{@page{size:A4;margin:15mm}body{background:#fff;font-size:11px}.toolbar{display:none}.sheet{max-width:none;margin:0;padding:0;box-shadow:none}.section{break-inside:avoid}.signature-grid{break-inside:avoid}.notice{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="toolbar"><a href="{{ back_url }}">← Back to HomeBridge</a><button onclick="window.print()">Print / Save as PDF</button></div>
+<article class="sheet">
+<header class="top"><div><div class="brand">HOME<span style="color:var(--gold)">BRIDGE</span></div><div class="kicker">Student accommodation · Zimbabwe</div></div><div class="docref"><strong>DRAFT AGREEMENT</strong><br>Reference: {{ document_ref }}<br>Prepared: {{ generated_at.strftime('%d %B %Y') }}</div></header>
+<div class="title"><div class="kicker">Residential tenancy document</div><h1>RENTAL AGREEMENT</h1><div>Draft for review and completion by the parties</div></div>
+<div class="notice"><strong>Important:</strong> This is a draft generated from the HomeBridge tenancy record for the parties to review and complete. It is not legal advice and is not represented as a signed or legally validated agreement. The parties should confirm applicable local legal requirements and obtain independent advice where needed before signing.</div>
+<section class="section">
+<h2>Agreement workflow</h2>
+<div class="field">
+  <small>Current status</small>
+  <strong>{{ agreement.status|replace('_',' ')|title }}</strong>
+  <div class="small text-muted mt-1">
+    Landlord review: {{ agreement.landlord_reviewed_at.strftime('%d %b %Y %H:%M UTC') if agreement.landlord_reviewed_at else 'Awaiting review' }} ·
+    Student review: {{ agreement.student_reviewed_at.strftime('%d %b %Y %H:%M UTC') if agreement.student_reviewed_at else 'Awaiting review' }}
+  </div>
+  {% if agreement.signed_document_path %}
+    <p class="mt-2 mb-0"><strong>Signed copy uploaded:</strong> {{ agreement.signed_uploaded_at.strftime('%d %b %Y %H:%M UTC') if agreement.signed_uploaded_at else 'Date unavailable' }}</p>
+    <a class="btn btn-sm btn-outline-success mt-2" href="{{ url_for(request.blueprint ~ '.download_signed_rental_agreement', tenancy_id=tenancy.id) }}">Download uploaded signed copy</a>
+  {% endif %}
+</div>
+{% if not agreement.signed_document_path %}
+  <form method="post" action="{{ url_for(request.blueprint ~ '.review_rental_agreement', tenancy_id=tenancy.id) }}" class="mt-3">
+    <button class="btn btn-outline-success" type="submit">I have reviewed this draft</button>
+  </form>
+  {% if agreement.status == 'ready_for_signing' %}
+    <form method="post" enctype="multipart/form-data" action="{{ url_for(request.blueprint ~ '.upload_signed_rental_agreement', tenancy_id=tenancy.id) }}" class="mt-3">
+      <label class="form-label" for="signed_agreement">Upload the separately signed agreement (PDF)</label>
+      <input class="form-control" id="signed_agreement" name="signed_agreement" type="file" accept="application/pdf,.pdf" required>
+      <button class="btn btn-success mt-2" type="submit">Upload signed PDF</button>
+    </form>
+  {% else %}
+    <p class="small text-muted mt-2">Both parties must record their review before the signed-copy upload becomes available. Review acknowledgement is not an electronic signature.</p>
+  {% endif %}
+{% endif %}
+</section>
+<section class="section"><h2>1. Parties</h2><div class="grid"><div class="field"><small>Landlord / property provider</small><strong>{{ tenancy.property.landlord.name }}</strong>{{ tenancy.property.landlord.email }}{% if tenancy.property.landlord.phone %}<br>{{ tenancy.property.landlord.phone }}{% endif %}</div><div class="field"><small>Tenant / student</small><strong>{{ tenancy.student.name }}</strong>{{ tenancy.student.email }}{% if tenancy.student.phone %}<br>{{ tenancy.student.phone }}{% endif %}</div></div><p class="clause">The parties identified above intend to record the proposed residential letting terms for the accommodation described below. Each party should verify the names and contact details and complete any additional identification and service-address details required.</p></section>
+<section class="section"><h2>2. Premises</h2><div class="grid"><div class="field"><small>Property</small><strong>{{ tenancy.property.title }}</strong></div><div class="field"><small>Room / unit</small><strong>{{ tenancy.room_label or 'To be specified by the parties' }}</strong></div><div class="field"><small>Address / location</small><strong>{{ tenancy.property.location }}, {{ tenancy.property.city }}, {{ tenancy.property.country }}</strong></div><div class="field"><small>Property type</small><strong>{{ tenancy.property.property_type|title }}</strong></div></div><p class="clause">The exact room, access areas, keys, fixtures, furnishings and condition of the premises should be confirmed in a jointly reviewed inventory or condition report attached to the final agreement.</p></section>
+<section class="section"><h2>3. Rent and payment terms</h2><div class="grid"><div class="field"><small>Agreed rent</small><strong>{{ tenancy.rent_currency }} {{ '%.2f'|format(tenancy.rent_amount or tenancy.monthly_rent or 0) }} per {{ (tenancy.rent_period or 'month')|replace('_',' ') }}</strong></div><div class="field"><small>Payment due date / method</small><strong>To be agreed and written here: __________________</strong></div><div class="field"><small>Tenancy commencement</small><strong>{{ tenancy.start_date.strftime('%d %B %Y') }}</strong></div><div class="field"><small>Tenancy end</small><strong>{{ tenancy.end_date.strftime('%d %B %Y') if tenancy.end_date else 'Not specified — parties to agree' }}</strong></div></div><p class="clause">The parties must record the exact payment due date, accepted payment method, recipient details, any deposit, utilities, service charges, late-payment arrangements and any rent review terms before signing. HomeBridge does not collect or verify rent under this document.</p></section>
+<section class="section"><h2>4. Additional terms agreed in HomeBridge</h2><div class="terms">{{ offer.terms if offer and offer.terms else 'No additional terms were recorded in the HomeBridge offer. The parties should write and agree any additional terms before signing.' }}</div></section>
+<section class="section"><h2>5. Responsibilities and property condition</h2><p class="clause">The landlord and tenant should agree in writing who is responsible for utilities, cleaning of shared areas, repairs, maintenance reporting, security, access, visitors, house rules, and the condition in which the premises must be returned. Attach an inventory and dated condition photographs where appropriate.</p></section>
+<section class="section"><h2>6. Changes, termination and disputes</h2><p class="clause">The parties must complete the applicable notice periods, grounds and process for termination, renewal arrangements, dispute-resolution procedure, and any other mandatory terms required by the law applicable to the premises. Do not rely on this draft as a substitute for checking those requirements.</p></section>
+<section class="section"><h2>7. Review and signatures</h2><p>By signing the final version, each party confirms that they have read and understood the completed agreement, had an opportunity to ask questions and obtain independent advice, and agree to the terms recorded in the final document.</p><div class="signature-grid"><div><div class="signature"></div><div class="signature-label">Landlord signature</div><p class="signature-label">Full name: ______________________________</p><p class="signature-label">Date: ___________________________________</p></div><div><div class="signature"></div><div class="signature-label">Tenant signature</div><p class="signature-label">Full name: ______________________________</p><p class="signature-label">Date: ___________________________________</p></div><div><div class="signature"></div><div class="signature-label">Witness 1 signature (if required)</div><p class="signature-label">Full name: ______________________________</p><p class="signature-label">Contact: _________________________________</p></div><div><div class="signature"></div><div class="signature-label">Witness 2 signature (if required)</div><p class="signature-label">Full name: ______________________________</p><p class="signature-label">Contact: _________________________________</p></div></div></section>
+<footer class="footer">HomeBridge draft generated from tenancy record #{{ tenancy.id }} · Generated {{ generated_at.strftime('%d %B %Y at %H:%M UTC') }} · This document is not signed or legally validated by HomeBridge.</footer>
+</article>
+</body></html>

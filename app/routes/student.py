@@ -1,13 +1,17 @@
 from functools import wraps
 from datetime import datetime
+from calendar import monthrange
 import os
 from uuid import uuid4
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
-from app.models import Application, Payment, PlatformSetting, Property, Tenancy, TenancyOffer, ViewingAppointment, db
+from app.agreement_workflow import get_or_create_agreement, record_review, store_signed_pdf
+from app.notifications import create_in_app_notification
+from app.rent_payment_workflow import store_rent_payment_proof
+from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, RentPayment, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
 
 student = Blueprint("student", __name__, url_prefix="/student")
 
@@ -64,6 +68,145 @@ def dashboard():
 
 
 
+
+
+@student.route("/rent-payments")
+@student_required
+def rent_payments():
+    items = RentPayment.query.filter_by(student_id=current_user.id).order_by(RentPayment.submitted_at.desc()).all()
+    tenancies = Tenancy.query.filter_by(student_id=current_user.id, status="active").order_by(Tenancy.created_at.desc()).all()
+    return render_template("student/rent_payments.html", rent_payments=items, tenancies=tenancies)
+
+
+@student.route("/tenancies/<int:tenancy_id>/rent-payments", methods=["POST"])
+@student_required
+def submit_rent_payment(tenancy_id):
+    from decimal import Decimal, InvalidOperation
+
+    tenancy = Tenancy.query.filter_by(id=tenancy_id, student_id=current_user.id, status="active").first_or_404()
+    try:
+        amount = Decimal(request.form.get("amount", "").strip())
+        if not amount.is_finite() or amount <= 0 or amount > Decimal("9999999999.99"):
+            raise InvalidOperation
+    except (InvalidOperation, ValueError):
+        flash("Enter a valid rent amount greater than zero.", "danger")
+        return redirect(url_for("student.rent_payments"))
+
+    currency = {"USD": "USD", "ZIG": "ZiG", "ZAR": "ZAR"}.get(request.form.get("currency", "").strip().upper())
+    if not currency or currency != tenancy.rent_currency:
+        flash(f"Rent payments must use the tenancy currency ({tenancy.rent_currency}).", "danger")
+        return redirect(url_for("student.rent_payments"))
+
+    try:
+        period_start = datetime.strptime(request.form.get("period_start", ""), "%Y-%m-%d").date()
+        period_end = datetime.strptime(request.form.get("period_end", ""), "%Y-%m-%d").date()
+        if period_end < period_start:
+            raise ValueError
+    except ValueError:
+        flash("Enter a valid rent coverage period; the end date cannot be before the start date.", "danger")
+        return redirect(url_for("student.rent_payments"))
+    payment_month = period_start.strftime("%Y-%m")
+
+    existing_payments = RentPayment.query.filter(
+        RentPayment.tenancy_id == tenancy.id,
+        RentPayment.status.in_(["pending", "confirmed"]),
+    ).all()
+    for existing in existing_payments:
+        if existing.period_start and existing.period_end:
+            existing_start, existing_end = existing.period_start, existing.period_end
+        else:
+            existing_start = datetime.strptime(existing.payment_month + "-01", "%Y-%m-%d").date()
+            existing_end = existing_start.replace(day=monthrange(existing_start.year, existing_start.month)[1])
+        if period_start <= existing_end and period_end >= existing_start:
+            flash("A pending or confirmed rent payment already covers part of that period.", "warning")
+            return redirect(url_for("student.rent_payments"))
+
+    try:
+        proof_path = store_rent_payment_proof(request.files.get("proof_file"))
+    except ValueError as exc:
+        flash(str(exc), "danger")
+        return redirect(url_for("student.rent_payments"))
+
+    payment = RentPayment(
+        tenancy_id=tenancy.id,
+        property_id=tenancy.property_id,
+        student_id=current_user.id,
+        amount=amount,
+        currency=currency,
+        payment_month=payment_month,
+        period_start=period_start,
+        period_end=period_end,
+        reference=request.form.get("reference", "").strip()[:100] or None,
+        proof_file=proof_path,
+        status="pending",
+    )
+    db.session.add(payment)
+    create_in_app_notification(
+        tenancy.property.landlord_id,
+        "rent_payment_submitted",
+        "Rent payment proof submitted",
+        f"{current_user.name} submitted rent payment proof for {payment_month} at {tenancy.property.title}.",
+        url_for("landlord.rent_payments"),
+        current_user.id,
+    )
+    db.session.commit()
+    flash("Rent payment proof submitted for landlord review.", "success")
+    return redirect(url_for("student.rent_payments"))
+
+
+@student.route("/rent-payments/<int:payment_id>/proof")
+@student_required
+def download_rent_payment_proof(payment_id):
+    payment = RentPayment.query.filter_by(id=payment_id, student_id=current_user.id).first_or_404()
+    if not payment.proof_file:
+        abort(404)
+    return send_from_directory(
+        current_app.config["PRIVATE_UPLOAD_FOLDER"],
+        payment.proof_file,
+        as_attachment=True,
+        download_name=f"rent-payment-proof-{payment.id}{os.path.splitext(payment.proof_file)[1]}",
+    )
+
+@student.route("/maintenance")
+@student_required
+def maintenance():
+    items = MaintenanceRequest.query.filter_by(reported_by_id=current_user.id).order_by(MaintenanceRequest.reported_at.desc()).all()
+    tenancies = Tenancy.query.filter_by(student_id=current_user.id, status="active").order_by(Tenancy.created_at.desc()).all()
+    return render_template("student/maintenance.html", requests=items, tenancies=tenancies)
+
+
+@student.route("/tenancies/<int:tenancy_id>/maintenance", methods=["POST"])
+@student_required
+def report_maintenance(tenancy_id):
+    tenancy = Tenancy.query.filter_by(id=tenancy_id, student_id=current_user.id, status="active").first_or_404()
+    title = request.form.get("title", "").strip()[:200]
+    description = request.form.get("description", "").strip()
+    priority = request.form.get("priority", "normal").strip().lower()
+    if not title or not description:
+        flash("Add a title and description for the maintenance issue.", "danger")
+    elif priority not in {"low", "normal", "high", "urgent"}:
+        flash("Choose a valid priority.", "danger")
+    else:
+        item = MaintenanceRequest(
+            property_id=tenancy.property_id,
+            reported_by_id=current_user.id,
+            title=title,
+            description=description[:5000],
+            priority=priority,
+        )
+        db.session.add(item)
+        create_in_app_notification(
+            tenancy.property.landlord_id,
+            "maintenance_reported",
+            "New maintenance request",
+            f"{current_user.name} reported: {title} at {tenancy.property.title}.",
+            url_for("landlord.maintenance"),
+            current_user.id,
+        )
+        db.session.commit()
+        flash("Your maintenance request has been sent to the landlord.", "success")
+    return redirect(url_for("student.maintenance"))
+
 @student.route("/tenancies")
 @student_required
 def tenancies():
@@ -84,6 +227,14 @@ def respond_to_tenancy_offer(application_id):
         flash("Choose accept or decline.", "danger")
     elif response == "declined":
         offer.status = "declined"
+        create_in_app_notification(
+            application.property.landlord_id,
+            "tenancy_offer_declined",
+            "Tenancy offer declined",
+            f"{current_user.name} declined the tenancy offer for {application.property.title}.",
+            url_for("landlord.tenancies"),
+            current_user.id,
+        )
         db.session.commit()
         flash("You declined the offer. No tenancy has been created.", "info")
     elif Tenancy.query.filter_by(application_id=application.id).first():
@@ -92,9 +243,102 @@ def respond_to_tenancy_offer(application_id):
         tenancy = Tenancy(application_id=application.id, property_id=application.property_id, student_id=current_user.id, room_label=offer.room_label, monthly_rent=offer.rent_amount if offer.rent_period == "month" else None, rent_amount=offer.rent_amount, rent_currency=offer.rent_currency, rent_period=offer.rent_period, start_date=offer.start_date, end_date=offer.end_date, status="active")
         offer.status = "accepted"
         db.session.add(tenancy)
+        create_in_app_notification(
+            application.property.landlord_id,
+            "tenancy_offer_accepted",
+            "Tenancy offer accepted",
+            f"{current_user.name} accepted the tenancy offer for {application.property.title}. A tenancy record has been created.",
+            url_for("landlord.tenancies"),
+            current_user.id,
+        )
         db.session.commit()
         flash("Offer accepted and tenancy record created. Complete any separate written rental agreement with the landlord.", "success")
     return redirect(url_for("student.tenancies"))
+
+@student.route("/tenancies/<int:tenancy_id>/agreement")
+@student_required
+def rental_agreement(tenancy_id):
+    tenancy = Tenancy.query.filter_by(
+        id=tenancy_id,
+        student_id=current_user.id
+    ).first_or_404()
+    offer = TenancyOffer.query.filter_by(application_id=tenancy.application_id, status="accepted").first()
+    if not offer:
+        flash("The accepted offer details for this tenancy could not be found.", "warning")
+        return redirect(url_for("student.tenancies"))
+    agreement = get_or_create_agreement(tenancy)
+    if not agreement.prepared_at:
+        agreement.prepared_at = datetime.utcnow()
+        db.session.commit()
+    return render_template(
+        "rental_agreement.html",
+        tenancy=tenancy,
+        offer=offer,
+        agreement=agreement,
+        generated_at=datetime.utcnow(),
+        document_ref=f"HB-TEN-{tenancy.id:06d}",
+        back_url=url_for("student.tenancies"),
+    )
+
+
+
+@student.route("/tenancies/<int:tenancy_id>/agreement/review", methods=["POST"])
+@student_required
+def review_rental_agreement(tenancy_id):
+    tenancy = Tenancy.query.filter_by(id=tenancy_id, student_id=current_user.id).first_or_404()
+    agreement = RentalAgreement.query.filter_by(tenancy_id=tenancy.id).first_or_404()
+    if not record_review(agreement, "student"):
+        flash("The signed agreement copy has already been uploaded; review is locked.", "warning")
+    else:
+        create_in_app_notification(
+            tenancy.property.landlord_id,
+            "agreement_reviewed",
+            "Rental agreement reviewed",
+            f"{current_user.name} recorded a review of the rental agreement for {tenancy.property.title}.",
+            url_for("landlord.rental_agreement", tenancy_id=tenancy.id),
+            current_user.id,
+        )
+        db.session.commit()
+        flash("Your agreement review has been recorded.", "success")
+    return redirect(url_for("student.rental_agreement", tenancy_id=tenancy.id))
+
+
+@student.route("/tenancies/<int:tenancy_id>/agreement/signed-copy", methods=["POST"])
+@student_required
+def upload_signed_rental_agreement(tenancy_id):
+    tenancy = Tenancy.query.filter_by(id=tenancy_id, student_id=current_user.id).first_or_404()
+    agreement = RentalAgreement.query.filter_by(tenancy_id=tenancy.id).first_or_404()
+    try:
+        store_signed_pdf(agreement, request.files.get("signed_agreement"), current_user.id)
+    except ValueError as exc:
+        flash(str(exc), "danger")
+        return redirect(url_for("student.rental_agreement", tenancy_id=tenancy.id))
+    create_in_app_notification(
+        tenancy.property.landlord_id,
+        "agreement_signed_copy_uploaded",
+        "Signed rental agreement copy uploaded",
+        f"{current_user.name} uploaded a signed rental agreement copy for {tenancy.property.title}.",
+        url_for("landlord.rental_agreement", tenancy_id=tenancy.id),
+        current_user.id,
+    )
+    db.session.commit()
+    flash("Signed PDF uploaded. HomeBridge has stored the document; it has not independently verified signatures or legal validity.", "success")
+    return redirect(url_for("student.rental_agreement", tenancy_id=tenancy.id))
+
+
+@student.route("/tenancies/<int:tenancy_id>/agreement/signed-copy")
+@student_required
+def download_signed_rental_agreement(tenancy_id):
+    tenancy = Tenancy.query.filter_by(id=tenancy_id, student_id=current_user.id).first_or_404()
+    agreement = RentalAgreement.query.filter_by(tenancy_id=tenancy.id).first_or_404()
+    if not agreement.signed_document_path:
+        return redirect(url_for("student.rental_agreement", tenancy_id=tenancy.id))
+    return send_from_directory(
+        current_app.config["PRIVATE_UPLOAD_FOLDER"],
+        agreement.signed_document_path,
+        as_attachment=True,
+        download_name=f"homebridge-signed-agreement-{tenancy.id}.pdf",
+    )
 
 @student.route("/payments")
 @student_required
@@ -159,6 +403,14 @@ def apply(property_id):
         return redirect(url_for("public.property_detail", property_id=prop.id))
     application = Application(property_id=prop.id, student_id=current_user.id, message=request.form.get("message", "").strip())
     db.session.add(application)
+    create_in_app_notification(
+        prop.landlord_id,
+        "new_application",
+        "New accommodation application",
+        f"{current_user.name} applied for {prop.title}. Review the application in your landlord dashboard.",
+        url_for("landlord.dashboard"),
+        current_user.id,
+    )
     db.session.commit()
     flash("Your application has been submitted.", "success")
     return redirect(url_for("student.applications"))
@@ -179,6 +431,14 @@ def withdraw_application(application_id):
         flash("This application can no longer be withdrawn.", "warning")
         return redirect(url_for("student.applications"))
     application.status = "withdrawn"
+    create_in_app_notification(
+        application.property.landlord_id,
+        "application_withdrawn",
+        "Application withdrawn",
+        f"{current_user.name} withdrew their application for {application.property.title}.",
+        url_for("landlord.dashboard"),
+        current_user.id,
+    )
     db.session.commit()
     flash("Application withdrawn.", "success")
     return redirect(url_for("student.applications"))
@@ -196,6 +456,14 @@ def respond_to_viewing(application_id):
         flash("Choose confirm or decline.", "danger")
     else:
         appointment.status = response
+        create_in_app_notification(
+            application.property.landlord_id,
+            "viewing_response",
+            "Viewing response received",
+            f"{current_user.name} {response} the viewing for {application.property.title}.",
+            url_for("landlord.application_detail", application_id=application.id),
+            current_user.id,
+        )
         db.session.commit()
         flash("Viewing " + ("confirmed." if response == "confirmed" else "declined."), "success")
     return redirect(url_for("student.applications"))

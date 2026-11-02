@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Rent payments · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="mb-4"><p class="hb-kicker mb-2">Tenancy finance</p><h1>Rent payments</h1><p class="text-muted">Submit your rent payment details and receipt for the landlord to review. HomeBridge records the submission; it does not move money.</p></div>
+  {% for tenancy in tenancies %}
+  <div class="card p-4 mb-4">
+    <h2 class="h4">{{ tenancy.property.title }}{% if tenancy.room_label %} · {{ tenancy.room_label }}{% endif %}</h2>
+    <p class="text-muted small">{{ tenancy.property.location }}, {{ tenancy.property.city }} · Expected {{ tenancy.rent_currency }} {{ tenancy.rent_amount or tenancy.monthly_rent }} per {{ tenancy.rent_period or 'month' }}</p>
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('student.submit_rent_payment', tenancy_id=tenancy.id) }}" class="row g-3">
+      <div class="col-md-3"><label class="form-label">Amount paid</label><input class="form-control" type="number" name="amount" min="0.01" max="9999999999.99" step="0.01" value="{{ tenancy.rent_amount or tenancy.monthly_rent or '' }}" required></div>
+      <div class="col-md-2"><label class="form-label">Currency</label><select class="form-select" name="currency" required><option value="USD" {% if tenancy.rent_currency=='USD' %}selected{% endif %}>USD</option><option value="ZIG" {% if tenancy.rent_currency=='ZiG' %}selected{% endif %}>ZiG</option><option value="ZAR" {% if tenancy.rent_currency=='ZAR' %}selected{% endif %}>ZAR</option></select></div>
+      <div class="col-md-3"><label class="form-label">Period start</label><input class="form-control" type="date" name="period_start" required></div>
+      <div class="col-md-3"><label class="form-label">Period end</label><input class="form-control" type="date" name="period_end" required></div>
+      <div class="col-md-4"><label class="form-label">Payment reference (optional)</label><input class="form-control" name="reference" maxlength="100"></div>
+      <div class="col-md-8"><label class="form-label">Receipt / proof (PDF, PNG or JPEG; max 10 MB)</label><input class="form-control" type="file" name="proof_file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required></div>
+      <div class="col-12"><button class="btn btn-gold" type="submit">Submit rent payment proof</button></div>
+    </form>
+  </div>
+  {% else %}
+  <div class="alert alert-info">You need an active tenancy before submitting rent payments.</div>
+  {% endfor %}
+  <div class="card p-4"><h2 class="h3 mb-3">Payment history</h2>
+    {% for payment in rent_payments %}
+    <div class="border-bottom py-3"><div class="d-flex justify-content-between flex-wrap gap-2"><strong>{{ payment.property.title }} · {{ payment.payment_month }}</strong><span class="badge {% if payment.status=='confirmed' %}text-bg-success{% elif payment.status=='rejected' %}text-bg-danger{% else %}text-bg-warning{% endif %}">{{ payment.status|title }}</span></div>
+      <div>{{ payment.currency }} {{ payment.amount }} · Coverage: {{ payment.period_start.strftime('%d %b %Y') if payment.period_start else payment.payment_month }} – {{ payment.period_end.strftime('%d %b %Y') if payment.period_end else 'legacy record' }}{% if payment.reference %} · Ref: {{ payment.reference }}{% endif %}</div>
+      <div class="small text-muted">Submitted {{ payment.submitted_at.strftime('%d %b %Y %H:%M') }}{% if payment.reviewed_at %} · Reviewed {{ payment.reviewed_at.strftime('%d %b %Y %H:%M') }}{% endif %}</div>
+      {% if payment.proof_file %}<a class="btn btn-sm btn-outline-dark mt-2" href="{{ url_for('student.download_rent_payment_proof', payment_id=payment.id) }}">Download submitted proof</a>{% endif %}
+      {% if payment.review_notes %}<p class="small mt-2 mb-0"><strong>Landlord note:</strong> {{ payment.review_notes }}</p>{% endif %}
+    </div>
+    {% else %}<p class="text-muted mb-0">No rent payments submitted yet.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}
