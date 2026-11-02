@@ -8,8 +8,8 @@ from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
 from app.agreement_workflow import get_or_create_agreement, record_review, store_signed_pdf
-from app.notifications import create_in_app_notification
-from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
+from app.notifications import create_in_app_notification\nfrom app.rent_payment_workflow import store_rent_payment_proof
+from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, RentPayment, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
 
 student = Blueprint("student", __name__, url_prefix="/student")
 
@@ -66,6 +66,94 @@ def dashboard():
 
 
 
+
+
+@student.route("/rent-payments")
+@student_required
+def rent_payments():
+    items = RentPayment.query.filter_by(student_id=current_user.id).order_by(RentPayment.submitted_at.desc()).all()
+    tenancies = Tenancy.query.filter_by(student_id=current_user.id, status="active").order_by(Tenancy.created_at.desc()).all()
+    return render_template("student/rent_payments.html", rent_payments=items, tenancies=tenancies)
+
+
+@student.route("/tenancies/<int:tenancy_id>/rent-payments", methods=["POST"])
+@student_required
+def submit_rent_payment(tenancy_id):
+    from decimal import Decimal, InvalidOperation
+
+    tenancy = Tenancy.query.filter_by(id=tenancy_id, student_id=current_user.id, status="active").first_or_404()
+    try:
+        amount = Decimal(request.form.get("amount", "").strip())
+        if not amount.is_finite() or amount <= 0 or amount > Decimal("9999999999.99"):
+            raise InvalidOperation
+    except (InvalidOperation, ValueError):
+        flash("Enter a valid rent amount greater than zero.", "danger")
+        return redirect(url_for("student.rent_payments"))
+
+    currency = {"USD": "USD", "ZIG": "ZiG", "ZAR": "ZAR"}.get(request.form.get("currency", "").strip().upper())
+    if not currency or currency != tenancy.rent_currency:
+        flash(f"Rent payments must use the tenancy currency ({tenancy.rent_currency}).", "danger")
+        return redirect(url_for("student.rent_payments"))
+
+    payment_month = request.form.get("payment_month", "").strip()
+    try:
+        datetime.strptime(payment_month + "-01", "%Y-%m-%d")
+    except ValueError:
+        flash("Choose a valid payment month.", "danger")
+        return redirect(url_for("student.rent_payments"))
+
+    duplicate = RentPayment.query.filter(
+        RentPayment.tenancy_id == tenancy.id,
+        RentPayment.payment_month == payment_month,
+        RentPayment.status.in_(["pending", "confirmed"]),
+    ).first()
+    if duplicate:
+        flash("A pending or confirmed rent payment already exists for that month.", "warning")
+        return redirect(url_for("student.rent_payments"))
+
+    try:
+        proof_path = store_rent_payment_proof(request.files.get("proof_file"))
+    except ValueError as exc:
+        flash(str(exc), "danger")
+        return redirect(url_for("student.rent_payments"))
+
+    payment = RentPayment(
+        tenancy_id=tenancy.id,
+        property_id=tenancy.property_id,
+        student_id=current_user.id,
+        amount=amount,
+        currency=currency,
+        payment_month=payment_month,
+        reference=request.form.get("reference", "").strip()[:100] or None,
+        proof_file=proof_path,
+        status="pending",
+    )
+    db.session.add(payment)
+    create_in_app_notification(
+        tenancy.property.landlord_id,
+        "rent_payment_submitted",
+        "Rent payment proof submitted",
+        f"{current_user.name} submitted rent payment proof for {payment_month} at {tenancy.property.title}.",
+        url_for("landlord.rent_payments"),
+        current_user.id,
+    )
+    db.session.commit()
+    flash("Rent payment proof submitted for landlord review.", "success")
+    return redirect(url_for("student.rent_payments"))
+
+
+@student.route("/rent-payments/<int:payment_id>/proof")
+@student_required
+def download_rent_payment_proof(payment_id):
+    payment = RentPayment.query.filter_by(id=payment_id, student_id=current_user.id).first_or_404()
+    if not payment.proof_file:
+        abort(404)
+    return send_from_directory(
+        current_app.config["PRIVATE_UPLOAD_FOLDER"],
+        payment.proof_file,
+        as_attachment=True,
+        download_name=f"rent-payment-proof-{payment.id}{os.path.splitext(payment.proof_file)[1]}",
+    )
 
 @student.route("/maintenance")
 @student_required
