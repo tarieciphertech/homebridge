@@ -7,7 +7,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
-from app.agreement_workflow import get_or_create_agreement, record_review, store_signed_pdf
+from app.agreement_workflow import get_or_create_agreement, record_review, store_signed_pdf\nfrom app.notifications import create_in_app_notification
 from app.models import Application, Payment, PlatformSetting, Property, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
 
 student = Blueprint("student", __name__, url_prefix="/student")
@@ -85,6 +85,14 @@ def respond_to_tenancy_offer(application_id):
         flash("Choose accept or decline.", "danger")
     elif response == "declined":
         offer.status = "declined"
+        create_in_app_notification(
+            application.property.landlord_id,
+            "tenancy_offer_declined",
+            "Tenancy offer declined",
+            f"{current_user.name} declined the tenancy offer for {application.property.title}.",
+            url_for("landlord.tenancies"),
+            current_user.id,
+        )
         db.session.commit()
         flash("You declined the offer. No tenancy has been created.", "info")
     elif Tenancy.query.filter_by(application_id=application.id).first():
@@ -93,6 +101,14 @@ def respond_to_tenancy_offer(application_id):
         tenancy = Tenancy(application_id=application.id, property_id=application.property_id, student_id=current_user.id, room_label=offer.room_label, monthly_rent=offer.rent_amount if offer.rent_period == "month" else None, rent_amount=offer.rent_amount, rent_currency=offer.rent_currency, rent_period=offer.rent_period, start_date=offer.start_date, end_date=offer.end_date, status="active")
         offer.status = "accepted"
         db.session.add(tenancy)
+        create_in_app_notification(
+            application.property.landlord_id,
+            "tenancy_offer_accepted",
+            "Tenancy offer accepted",
+            f"{current_user.name} accepted the tenancy offer for {application.property.title}. A tenancy record has been created.",
+            url_for("landlord.tenancies"),
+            current_user.id,
+        )
         db.session.commit()
         flash("Offer accepted and tenancy record created. Complete any separate written rental agreement with the landlord.", "success")
     return redirect(url_for("student.tenancies"))
@@ -227,6 +243,14 @@ def apply(property_id):
         return redirect(url_for("public.property_detail", property_id=prop.id))
     application = Application(property_id=prop.id, student_id=current_user.id, message=request.form.get("message", "").strip())
     db.session.add(application)
+    create_in_app_notification(
+        prop.landlord_id,
+        "new_application",
+        "New accommodation application",
+        f"{current_user.name} applied for {prop.title}. Review the application in your landlord dashboard.",
+        url_for("landlord.dashboard"),
+        current_user.id,
+    )
     db.session.commit()
     flash("Your application has been submitted.", "success")
     return redirect(url_for("student.applications"))
@@ -247,6 +271,14 @@ def withdraw_application(application_id):
         flash("This application can no longer be withdrawn.", "warning")
         return redirect(url_for("student.applications"))
     application.status = "withdrawn"
+    create_in_app_notification(
+        application.property.landlord_id,
+        "application_withdrawn",
+        "Application withdrawn",
+        f"{current_user.name} withdrew their application for {application.property.title}.",
+        url_for("landlord.dashboard"),
+        current_user.id,
+    )
     db.session.commit()
     flash("Application withdrawn.", "success")
     return redirect(url_for("student.applications"))
@@ -264,6 +296,14 @@ def respond_to_viewing(application_id):
         flash("Choose confirm or decline.", "danger")
     else:
         appointment.status = response
+        create_in_app_notification(
+            application.property.landlord_id,
+            "viewing_response",
+            "Viewing response received",
+            f"{current_user.name} {response} the viewing for {application.property.title}.",
+            url_for("landlord.application_detail", application_id=application.id),
+            current_user.id,
+        )
         db.session.commit()
         flash("Viewing " + ("confirmed." if response == "confirmed" else "declined."), "success")
     return redirect(url_for("student.applications"))
