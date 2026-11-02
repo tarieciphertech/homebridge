@@ -22,7 +22,7 @@
             <tr>
               <td>{{ property.title }}</td>
               <td>{{ property.location }}, {{ property.city }}</td>
-              <td>{{ property.price }} {{ property.country == 'Zimbabwe' and 'USD' or '' }}</td>
+              <td>{{ property.local_details.rent_currency if property.local_details else 'USD' }} {{ property.price }}<small class="d-block text-muted">per {{ property.local_details.rent_period if property.local_details else 'month' }}</small></td>
               <td>
                 {% if property.is_verified %}<span class="badge bg-success">Verified</span>
                 {% else %}<span class="badge bg-warning text-dark">Pending Review</span>{% endif %}
