@@ -280,9 +280,15 @@ def update_maintenance(request_id):
         flash("Enter a valid non-negative maintenance cost.", "danger")
         return redirect(url_for("landlord.maintenance"))
 
+    cost_currency = request.form.get("cost_currency", "USD").strip().upper()
+    if cost_currency not in {"USD", "ZIG", "ZAR"}:
+        flash("Choose a supported maintenance cost currency.", "danger")
+        return redirect(url_for("landlord.maintenance"))
+
     item.status = status
     item.resolution_notes = notes[:5000] or None
     item.cost = cost
+    item.cost_currency = cost_currency
     item.resolved_at = datetime.utcnow() if status in {"resolved", "closed"} else None
     create_in_app_notification(
         item.reported_by_id,
