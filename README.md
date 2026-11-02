@@ -91,6 +91,9 @@ A HomeBridge tenancy record stores the details accepted through the platform. It
 - Student maintenance reporting for active tenancies, including issue title, description and priority.
 - Landlord maintenance management with open/in-progress/resolved/closed states, optional cost tracking, resolution notes, and student notifications.
 - Agreement review and signed-copy upload events also notify the other tenancy party.
+- Tenants can submit rent payment records for an active tenancy, with the amount, tenancy currency, payment month, optional reference, and private receipt upload.
+- Landlords can review rent submissions as pending, confirmed or rejected, add notes, and notify the student of the outcome.
+- Rent payment proofs are stored privately and downloaded only by the relevant tenant or the owning landlord. These rent records remain separate from HomeBridge platform-fee revenue.
 - Existing property images and platform payment proofs retain their original public-upload storage paths; only signed rental agreements use the separate private document directory.
 - CI checks for Python compilation, Flask startup, agreement routes, database table creation, and Jinja template loading.
 
