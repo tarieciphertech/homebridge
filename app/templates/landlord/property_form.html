@@ -4,7 +4,7 @@
 <div class="container py-5">
   <div class="mb-4">
     <h1>{{ 'Edit Property' if mode == 'edit' else 'Add Property' }}</h1>
-    <p class="text-muted">Provide accurate accommodation details. New or edited listings are reviewed before publication.</p>
+    <p class="text-muted">List student-friendly accommodation accurately. Add the institution or campus nearby so students can find you. New or edited listings are reviewed before publication.</p>
   </div>
 
   <form method="post" enctype="multipart/form-data" class="card p-4">
@@ -12,11 +12,16 @@
       <div class="col-md-8"><label class="form-label">Property title *</label><input class="form-control" name="title" required value="{{ property.title if property else '' }}"></div>
       <div class="col-md-4"><label class="form-label">Property type</label><select class="form-select" name="property_type">{% for value in ['house','apartment','room','hostel'] %}<option value="{{ value }}" {% if property and property.property_type == value %}selected{% endif %}>{{ value|title }}</option>{% endfor %}</select></div>
       <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" rows="4" name="description">{{ property.description if property else '' }}</textarea></div>
-      <div class="col-md-4"><label class="form-label">Monthly rent *</label><input class="form-control" type="number" min="0" step="0.01" name="price" required value="{{ property.price if property else '' }}"></div>
+      <div class="col-md-4"><label class="form-label">Rent amount *</label><input class="form-control" type="number" min="0" step="0.01" name="price" required value="{{ property.price if property else '' }}"></div>
+      <div class="col-md-4"><label class="form-label">Rent currency</label><select class="form-select" name="rent_currency">{% for value in ['USD','ZiG','ZAR'] %}<option value="{{ value }}" {% if property and property.local_details and property.local_details.rent_currency == value %}selected{% elif (not property or not property.local_details) and value == 'USD' %}selected{% endif %}>{{ value }}</option>{% endfor %}</select></div>
+      <div class="col-md-4"><label class="form-label">Rent period</label><select class="form-select" name="rent_period">{% for value in ['month','week','term'] %}<option value="{{ value }}" {% if property and property.local_details and property.local_details.rent_period == value %}selected{% elif (not property or not property.local_details) and value == 'month' %}selected{% endif %}>Per {{ value }}</option>{% endfor %}</select></div>
       <div class="col-md-4"><label class="form-label">Listing type</label><select class="form-select" name="listing_type"><option value="rent" {% if not property or property.listing_type == 'rent' %}selected{% endif %}>Rent</option></select></div>
       <div class="col-md-4"><label class="form-label">Country</label><input class="form-control" name="country" value="{{ property.country if property else 'Zimbabwe' }}"></div>
       <div class="col-md-6"><label class="form-label">Location / suburb *</label><input class="form-control" name="location" required value="{{ property.location if property else '' }}"></div>
       <div class="col-md-6"><label class="form-label">City *</label><input class="form-control" name="city" required value="{{ property.city if property else '' }}"></div>
+      <div class="col-md-6"><label class="form-label">Nearby university / college / school</label><input class="form-control" name="institution_name" placeholder="e.g. University of Zimbabwe" value="{{ property.local_details.institution_name if property and property.local_details else '' }}"><div class="form-text">Use the institution students would search for.</div></div>
+      <div class="col-md-4"><label class="form-label">Campus / area</label><input class="form-control" name="campus_name" placeholder="e.g. Mount Pleasant campus" value="{{ property.local_details.campus_name if property and property.local_details else '' }}"></div>
+      <div class="col-md-2"><label class="form-label">Distance (km)</label><input class="form-control" type="number" min="0" step="0.1" name="distance_km" value="{{ property.local_details.distance_km if property and property.local_details and property.local_details.distance_km is not none else '' }}"></div>
       <div class="col-md-3"><label class="form-label">Bedrooms</label><input class="form-control" type="number" min="0" name="bedrooms" value="{{ property.bedrooms if property else '' }}"></div>
       <div class="col-md-3"><label class="form-label">Bathrooms</label><input class="form-control" type="number" min="0" name="bathrooms" value="{{ property.bathrooms if property else '' }}"></div>
       <div class="col-md-3"><label class="form-label">Total rooms</label><input class="form-control" type="number" min="0" name="total_rooms" value="{{ property.total_rooms if property else '' }}"></div>
