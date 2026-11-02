@@ -128,11 +128,40 @@ def add_uploaded_images(prop):
 def dashboard():
     properties = Property.query.filter_by(landlord_id=current_user.id).order_by(Property.submitted_at.desc()).all()
     property_ids = [property.id for property in properties]
-    applications = Application.query.filter(Application.property_id.in_(property_ids)).order_by(Application.submitted_at.desc()).limit(10).all() if property_ids else []
+    applications = Application.query.join(Property).filter(Property.landlord_id == current_user.id).order_by(Application.submitted_at.desc()).limit(10).all() if property_ids else []
     maintenance = MaintenanceRequest.query.filter(MaintenanceRequest.property_id.in_(property_ids)).order_by(MaintenanceRequest.reported_at.desc()).limit(10).all() if property_ids else []
     rent_payments = RentPayment.query.filter(RentPayment.property_id.in_(property_ids)).order_by(RentPayment.submitted_at.desc()).limit(10).all() if property_ids else []
     platform_payments = Payment.query.filter_by(user_id=current_user.id).order_by(Payment.submitted_at.desc()).limit(10).all()
     return render_template("landlord/dashboard.html", properties=properties, applications=applications, maintenance=maintenance, rent_payments=rent_payments, platform_payments=platform_payments, listing_fee=listing_fee(), listing_fee_paid=has_confirmed_listing_fee())
+
+
+@landlord.route("/applications/<int:application_id>")
+@landlord_required
+def application_detail(application_id):
+    application = Application.query.join(Property).filter(
+        Application.id == application_id,
+        Property.landlord_id == current_user.id
+    ).first_or_404()
+    return render_template("landlord/application_detail.html", application=application)
+
+
+@landlord.route("/applications/<int:application_id>/decision", methods=["POST"])
+@landlord_required
+def decide_application(application_id):
+    application = Application.query.join(Property).filter(
+        Application.id == application_id,
+        Property.landlord_id == current_user.id
+    ).first_or_404()
+    decision = request.form.get("decision", "").strip().lower()
+    if application.status not in {"pending", "under_review"}:
+        flash("This application has already been decided or withdrawn.", "warning")
+    elif decision not in {"approved", "rejected", "under_review"}:
+        flash("Choose a valid application decision.", "danger")
+    else:
+        application.status = decision
+        db.session.commit()
+        flash(f"Application {decision.replace('_', ' ')}.", "success")
+    return redirect(url_for("landlord.application_detail", application_id=application.id))
 
 
 @landlord.route("/payments")
