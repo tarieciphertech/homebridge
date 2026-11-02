@@ -78,16 +78,19 @@ A HomeBridge tenancy record stores the details accepted through the platform. It
 
 ### Next priorities — current work in progress
 
-**Rental agreement draft preview has been implemented on the feature branch `feature/rental-agreement-preview`; it has not yet been merged into `main` or deployed to Oracle.** The first slice adds:
-- A role-protected agreement preview route for the landlord who owns the tenancy.
-- A role-protected agreement preview route for the student on the tenancy.
-- A printable A4-style agreement populated from the accepted tenancy and offer details.
-- A browser **Print / Save as PDF** action, with signature and witness spaces for the parties to complete offline.
-- A warning that the generated document is a draft for review, not a signed or legally validated agreement.
+**Rental agreement lifecycle is under development on `feature/agreement-lifecycle`; it is not merged into `main` or deployed to Oracle.** The current development slice adds:
+- Role-protected agreement preview routes for the landlord who owns the tenancy and the student attached to it.
+- A per-tenancy `RentalAgreement` workflow record.
+- Separate landlord and student review acknowledgements and timestamps.
+- Status progression: `draft` → `under_review` → `ready_for_signing` → `signed_copy_uploaded`.
+- Signed-PDF upload after both parties have reviewed the draft.
+- Private signed-document storage outside the public static directory, with role-checked downloads for the landlord, student, and admin.
+- An admin oversight page for agreement status and signed-copy access.
+- CI checks for Python compilation, Flask startup, agreement routes, database table creation, and Jinja template loading.
 
-This first slice intentionally does **not** store electronic signatures or claim that a typed name, generated PDF, or HomeBridge tenancy record is legally binding. The draft asks the parties to complete missing payment due-date, deposit, utility, notice, inventory, and other terms before signing. Legal wording must be reviewed for the applicable jurisdiction before production use.
+Review acknowledgements are **not electronic signatures**. Uploading a signed PDF does not prove that signatures are genuine or that the agreement is legally valid. HomeBridge does not collect rent or verify payment through this workflow. The draft still requires the parties to complete payment due dates, deposit, utilities, notice, inventory, and any other required terms. Legal wording must be reviewed for the applicable jurisdiction before production use.
 
-Before merging or deploying, test both roles against their own tenancy and verify that a student cannot access another student's agreement and a landlord cannot access another landlord's tenancy. Also verify PDF printing, long additional terms, missing end dates, and the agreement's display of currency and rent period.
+Before deployment, complete role-isolation tests, review-state transition tests, PDF upload/download validation, print layout checks, and regression tests for existing tenancy workflows. Confirm private upload directory permissions and backup coverage.
 
 Remaining proposed work:
 1. Add notifications when an agreement is ready for review and when the parties complete their offline signing process (if that process is brought into the platform).
