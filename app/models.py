@@ -246,3 +246,20 @@ class Inquiry(db.Model):
     message = db.Column(db.Text)
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     is_handled = db.Column(db.Boolean, default=False, nullable=False)
+
+
+class Notification(db.Model):
+    """In-app event notification addressed to one account."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    actor_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    event_type = db.Column(db.String(50), nullable=False, index=True)
+    title = db.Column(db.String(180), nullable=False)
+    message = db.Column(db.String(500), nullable=False)
+    target_url = db.Column(db.String(500))
+    is_read = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    read_at = db.Column(db.DateTime)
+
+    recipient = db.relationship("User", foreign_keys=[user_id], backref=db.backref("notifications", lazy="dynamic"))
+    actor = db.relationship("User", foreign_keys=[actor_id])
