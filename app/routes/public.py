@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, send_from_directory
-from app.models import db, Property, Inquiry, PlatformSetting
+from sqlalchemy import or_
+from app.models import db, Property, Inquiry, PlatformSetting, PropertyLocalDetails
 from app.notifications import notify_new_inquiry
 import os
 
@@ -24,6 +25,7 @@ def properties():
     property_type = request.args.get('property_type', '')
     city = request.args.get('city', '')
     rooms = request.args.get('rooms', type=int)
+    institution = request.args.get('institution', '').strip()
     query = Property.query.filter_by(is_published=True, availability_status='available')
     if property_type:
         query = query.filter_by(property_type=property_type)
@@ -31,9 +33,17 @@ def properties():
         query = query.filter(Property.city.ilike(f'%{city}%'))
     if rooms:
         query = query.filter(Property.available_rooms >= rooms)
+    if institution:
+        query = query.outerjoin(PropertyLocalDetails).filter(or_(
+            PropertyLocalDetails.institution_name.ilike(f'%{institution}%'),
+            PropertyLocalDetails.campus_name.ilike(f'%{institution}%'),
+            Property.city.ilike(f'%{institution}%'),
+            Property.location.ilike(f'%{institution}%'),
+            Property.title.ilike(f'%{institution}%')
+        )).distinct()
     all_properties = query.order_by(Property.is_featured.desc(), Property.submitted_at.desc()).all()
     cities = [c[0] for c in db.session.query(Property.city).filter_by(is_published=True).distinct().all() if c[0]]
-    return render_template('public/properties.html', properties=all_properties, cities=cities, property_type=property_type, city=city, rooms=rooms or '')
+    return render_template('public/properties.html', properties=all_properties, cities=cities, property_type=property_type, city=city, rooms=rooms or '', institution=institution)
 
 
 @public.route('/properties/<int:property_id>')
