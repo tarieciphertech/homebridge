@@ -111,9 +111,6 @@ def rental_agreement(tenancy_id):
     if not agreement.prepared_at:
         agreement.prepared_at = datetime.utcnow()
         db.session.commit()
-    if not offer:
-        flash("The accepted offer details for this tenancy could not be found.", "warning")
-        return redirect(url_for("student.tenancies"))
     return render_template(
         "rental_agreement.html",
         tenancy=tenancy,
