@@ -173,6 +173,33 @@ class Tenancy(db.Model):
     student = db.relationship("User", foreign_keys=[student_id], backref="tenancies")
 
 
+class RentalAgreement(db.Model):
+    """Workflow record for preparing and completing an offline rental agreement.
+
+    A tenancy has at most one current agreement record. The uploaded signed
+    copy is stored separately from the generated draft and is never treated
+    as an electronic signature.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    tenancy_id = db.Column(db.Integer, db.ForeignKey("tenancy.id"), nullable=False, unique=True, index=True)
+    landlord_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    student_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    status = db.Column(db.String(30), nullable=False, default="draft", index=True)
+    prepared_at = db.Column(db.DateTime)
+    landlord_reviewed_at = db.Column(db.DateTime)
+    student_reviewed_at = db.Column(db.DateTime)
+    signed_document_path = db.Column(db.String(255))
+    signed_uploaded_by_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    signed_uploaded_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    tenancy = db.relationship("Tenancy", backref=db.backref("rental_agreement", uselist=False))
+    landlord = db.relationship("User", foreign_keys=[landlord_id])
+    student = db.relationship("User", foreign_keys=[student_id])
+    signed_uploaded_by = db.relationship("User", foreign_keys=[signed_uploaded_by_id])
+
+
 class RentPayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tenancy_id = db.Column(db.Integer, db.ForeignKey("tenancy.id"), nullable=False, index=True)
