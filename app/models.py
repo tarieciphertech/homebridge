@@ -229,6 +229,7 @@ class MaintenanceRequest(db.Model):
     status = db.Column(db.String(30), default="open", nullable=False)
     resolution_notes = db.Column(db.Text)
     cost = db.Column(db.Numeric(12, 2))
+    cost_currency = db.Column(db.String(10), nullable=False, default="USD")
     reported_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     resolved_at = db.Column(db.DateTime)
 
