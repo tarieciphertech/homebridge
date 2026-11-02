@@ -247,6 +247,56 @@ def cancel_viewing(application_id):
 
 
 
+
+@landlord.route("/maintenance")
+@landlord_required
+def maintenance():
+    items = MaintenanceRequest.query.join(Property).filter(
+        Property.landlord_id == current_user.id
+    ).order_by(MaintenanceRequest.reported_at.desc()).all()
+    return render_template("landlord/maintenance.html", requests=items)
+
+
+@landlord.route("/maintenance/<int:request_id>/update", methods=["POST"])
+@landlord_required
+def update_maintenance(request_id):
+    from decimal import Decimal, InvalidOperation
+
+    item = MaintenanceRequest.query.join(Property).filter(
+        MaintenanceRequest.id == request_id,
+        Property.landlord_id == current_user.id,
+    ).first_or_404()
+    status = request.form.get("status", "").strip().lower()
+    notes = request.form.get("resolution_notes", "").strip()
+    raw_cost = request.form.get("cost", "").strip()
+    if status not in {"open", "in_progress", "resolved", "closed"}:
+        flash("Choose a valid maintenance status.", "danger")
+        return redirect(url_for("landlord.maintenance"))
+    try:
+        cost = Decimal(raw_cost) if raw_cost else None
+        if cost is not None and (not cost.is_finite() or cost < 0 or cost > Decimal("9999999999.99")):
+            raise InvalidOperation
+    except (InvalidOperation, ValueError):
+        flash("Enter a valid non-negative maintenance cost.", "danger")
+        return redirect(url_for("landlord.maintenance"))
+
+    item.status = status
+    item.resolution_notes = notes[:5000] or None
+    item.cost = cost
+    item.resolved_at = datetime.utcnow() if status in {"resolved", "closed"} else None
+    create_in_app_notification(
+        item.reported_by_id,
+        "maintenance_updated",
+        "Maintenance request updated",
+        f"The landlord updated '{item.title}' to {status.replace('_', ' ')}.",
+        url_for("student.maintenance"),
+        current_user.id,
+    )
+    db.session.commit()
+    flash("Maintenance request updated.", "success")
+    return redirect(url_for("landlord.maintenance"))
+
+
 @landlord.route("/tenancies")
 @landlord_required
 def tenancies():
