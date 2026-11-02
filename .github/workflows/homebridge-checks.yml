@@ -34,7 +34,7 @@ jobs:
           python - <<'PY'
           from sqlalchemy import inspect
           from app import create_app
-          from app.models import Notification, RentalAgreement, db
+          from app.models import MaintenanceRequest, Notification, RentalAgreement, RentPayment, db
 
           app = create_app()
           rules = {rule.endpoint for rule in app.url_map.iter_rules()}
@@ -72,6 +72,10 @@ jobs:
               tables = inspect(db.engine).get_table_names()
               assert RentalAgreement.__tablename__ in tables, "RentalAgreement table missing"
               assert Notification.__tablename__ in tables, "Notification table missing"
+              maintenance_columns = {column["name"] for column in inspect(db.engine).get_columns(MaintenanceRequest.__tablename__)}
+              rent_columns = {column["name"] for column in inspect(db.engine).get_columns(RentPayment.__tablename__)}
+              assert "cost_currency" in maintenance_columns, "Maintenance cost currency column missing"
+              assert {"reviewed_by_id", "reviewed_at", "review_notes", "period_start", "period_end"} <= rent_columns, "Rent payment review/period columns missing"
               for template in app.jinja_env.list_templates():
                   app.jinja_env.get_template(template)
 
