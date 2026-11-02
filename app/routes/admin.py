@@ -25,7 +25,7 @@ def admin_required(f):
 
 def save_file(file, subfolder):
     filename = secure_filename(file.filename)
-    folder = os.path.join(current_app.config["PRIVATE_UPLOAD_FOLDER"], subfolder)
+    folder = os.path.join(current_app.config["UPLOAD_FOLDER"], subfolder)
     os.makedirs(folder, exist_ok=True)
     file.save(os.path.join(folder, filename))
     return os.path.join(subfolder, filename)
