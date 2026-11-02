@@ -16,6 +16,35 @@
 <header class="top"><div><div class="brand">HOME<span style="color:var(--gold)">BRIDGE</span></div><div class="kicker">Student accommodation · Zimbabwe</div></div><div class="docref"><strong>DRAFT AGREEMENT</strong><br>Reference: {{ document_ref }}<br>Prepared: {{ generated_at.strftime('%d %B %Y') }}</div></header>
 <div class="title"><div class="kicker">Residential tenancy document</div><h1>RENTAL AGREEMENT</h1><div>Draft for review and completion by the parties</div></div>
 <div class="notice"><strong>Important:</strong> This is a draft generated from the HomeBridge tenancy record for the parties to review and complete. It is not legal advice and is not represented as a signed or legally validated agreement. The parties should confirm applicable local legal requirements and obtain independent advice where needed before signing.</div>
+<section class="section">
+<h2>Agreement workflow</h2>
+<div class="field">
+  <small>Current status</small>
+  <strong>{{ agreement.status|replace('_',' ')|title }}</strong>
+  <div class="small text-muted mt-1">
+    Landlord review: {{ agreement.landlord_reviewed_at.strftime('%d %b %Y %H:%M UTC') if agreement.landlord_reviewed_at else 'Awaiting review' }} ·
+    Student review: {{ agreement.student_reviewed_at.strftime('%d %b %Y %H:%M UTC') if agreement.student_reviewed_at else 'Awaiting review' }}
+  </div>
+  {% if agreement.signed_document_path %}
+    <p class="mt-2 mb-0"><strong>Signed copy uploaded:</strong> {{ agreement.signed_uploaded_at.strftime('%d %b %Y %H:%M UTC') if agreement.signed_uploaded_at else 'Date unavailable' }}</p>
+    <a class="btn btn-sm btn-outline-success mt-2" href="{{ url_for(request.blueprint ~ '.download_signed_rental_agreement', tenancy_id=tenancy.id) }}">Download uploaded signed copy</a>
+  {% endif %}
+</div>
+{% if not agreement.signed_document_path %}
+  <form method="post" action="{{ url_for(request.blueprint ~ '.review_rental_agreement', tenancy_id=tenancy.id) }}" class="mt-3">
+    <button class="btn btn-outline-success" type="submit">I have reviewed this draft</button>
+  </form>
+  {% if agreement.status == 'ready_for_signing' %}
+    <form method="post" enctype="multipart/form-data" action="{{ url_for(request.blueprint ~ '.upload_signed_rental_agreement', tenancy_id=tenancy.id) }}" class="mt-3">
+      <label class="form-label" for="signed_agreement">Upload the separately signed agreement (PDF)</label>
+      <input class="form-control" id="signed_agreement" name="signed_agreement" type="file" accept="application/pdf,.pdf" required>
+      <button class="btn btn-success mt-2" type="submit">Upload signed PDF</button>
+    </form>
+  {% else %}
+    <p class="small text-muted mt-2">Both parties must record their review before the signed-copy upload becomes available. Review acknowledgement is not an electronic signature.</p>
+  {% endif %}
+{% endif %}
+</section>
 <section class="section"><h2>1. Parties</h2><div class="grid"><div class="field"><small>Landlord / property provider</small><strong>{{ tenancy.property.landlord.name }}</strong>{{ tenancy.property.landlord.email }}{% if tenancy.property.landlord.phone %}<br>{{ tenancy.property.landlord.phone }}{% endif %}</div><div class="field"><small>Tenant / student</small><strong>{{ tenancy.student.name }}</strong>{{ tenancy.student.email }}{% if tenancy.student.phone %}<br>{{ tenancy.student.phone }}{% endif %}</div></div><p class="clause">The parties identified above intend to record the proposed residential letting terms for the accommodation described below. Each party should verify the names and contact details and complete any additional identification and service-address details required.</p></section>
 <section class="section"><h2>2. Premises</h2><div class="grid"><div class="field"><small>Property</small><strong>{{ tenancy.property.title }}</strong></div><div class="field"><small>Room / unit</small><strong>{{ tenancy.room_label or 'To be specified by the parties' }}</strong></div><div class="field"><small>Address / location</small><strong>{{ tenancy.property.location }}, {{ tenancy.property.city }}, {{ tenancy.property.country }}</strong></div><div class="field"><small>Property type</small><strong>{{ tenancy.property.property_type|title }}</strong></div></div><p class="clause">The exact room, access areas, keys, fixtures, furnishings and condition of the premises should be confirmed in a jointly reviewed inventory or condition report attached to the final agreement.</p></section>
 <section class="section"><h2>3. Rent and payment terms</h2><div class="grid"><div class="field"><small>Agreed rent</small><strong>{{ tenancy.rent_currency }} {{ '%.2f'|format(tenancy.rent_amount or tenancy.monthly_rent or 0) }} per {{ (tenancy.rent_period or 'month')|replace('_',' ') }}</strong></div><div class="field"><small>Payment due date / method</small><strong>To be agreed and written here: __________________</strong></div><div class="field"><small>Tenancy commencement</small><strong>{{ tenancy.start_date.strftime('%d %B %Y') }}</strong></div><div class="field"><small>Tenancy end</small><strong>{{ tenancy.end_date.strftime('%d %B %Y') if tenancy.end_date else 'Not specified — parties to agree' }}</strong></div></div><p class="clause">The parties must record the exact payment due date, accepted payment method, recipient details, any deposit, utilities, service charges, late-payment arrangements and any rent review terms before signing. HomeBridge does not collect or verify rent under this document.</p></section>
