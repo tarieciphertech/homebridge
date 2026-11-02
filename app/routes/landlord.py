@@ -249,6 +249,9 @@ def delete_image(property_id, image_id):
 @landlord_required
 def submit_property(property_id):
     prop = Property.query.filter_by(id=property_id, landlord_id=current_user.id).first_or_404()
+    if not current_user.is_approved:
+        flash("Your landlord account must be approved before you can submit a property.", "warning")
+        return redirect(url_for("landlord.dashboard"))
     if not has_confirmed_listing_fee():
         flash("Your landlord listing fee must be confirmed before submitting a property.", "warning")
         return redirect(url_for("landlord.listing_fee_page"))
