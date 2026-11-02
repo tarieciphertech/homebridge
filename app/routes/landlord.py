@@ -8,7 +8,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
-from app.agreement_workflow import get_or_create_agreement, record_review, store_signed_pdf
+from app.agreement_workflow import get_or_create_agreement, record_review, store_signed_pdf\nfrom app.notifications import create_in_app_notification
 from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, PropertyLocalDetails, RentPayment, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
 
 landlord = Blueprint("landlord", __name__, url_prefix="/landlord")
@@ -163,6 +163,14 @@ def decide_application(application_id):
         flash("Choose a valid application decision.", "danger")
     else:
         application.status = decision
+        create_in_app_notification(
+            application.student_id,
+            "application_status",
+            "Application update",
+            f"Your application for {application.property.title} is now {decision.replace('_', ' ')}.",
+            url_for("student.applications"),
+            current_user.id,
+        )
         db.session.commit()
         flash(f"Application {decision.replace('_', ' ')}.", "success")
     return redirect(url_for("landlord.application_detail", application_id=application.id))
@@ -201,6 +209,14 @@ def propose_viewing(application_id):
             appointment.scheduled_at = scheduled_at
             appointment.meeting_details = meeting_details
             appointment.status = "proposed"
+            create_in_app_notification(
+                application.student_id,
+                "viewing_proposed",
+                "Viewing proposed",
+                f"A viewing for {application.property.title} has been proposed for {scheduled_at.strftime('%d %b %Y at %H:%M')}.",
+                url_for("student.applications"),
+                current_user.id,
+            )
             db.session.commit()
             flash("Viewing proposal saved. The student can respond from My Applications.", "success")
     return redirect(url_for("landlord.application_detail", application_id=application.id))
@@ -216,6 +232,14 @@ def cancel_viewing(application_id):
     appointment = ViewingAppointment.query.filter_by(application_id=application.id).first_or_404()
     if appointment.status in {"proposed", "confirmed"}:
         appointment.status = "cancelled"
+        create_in_app_notification(
+            application.student_id,
+            "viewing_cancelled",
+            "Viewing cancelled",
+            f"The viewing for {application.property.title} has been cancelled by the landlord.",
+            url_for("student.applications"),
+            current_user.id,
+        )
         db.session.commit()
         flash("Viewing cancelled.", "success")
     return redirect(url_for("landlord.application_detail", application_id=application.id))
@@ -281,6 +305,14 @@ def propose_tenancy_offer(application_id):
     offer.start_date, offer.end_date = start_date, end_date
     offer.terms = request.form.get("terms", "").strip()[:4000] or None
     offer.status = "proposed"
+    create_in_app_notification(
+        application.student_id,
+        "tenancy_offer",
+        "New tenancy offer",
+        f"{current_user.name} sent you a tenancy offer for {application.property.title}. Review the terms in My Applications.",
+        url_for("student.applications"),
+        current_user.id,
+    )
     db.session.commit()
     flash("Tenancy offer sent. The student can review it under My Applications.", "success")
     return redirect(url_for("landlord.application_detail", application_id=application.id))
