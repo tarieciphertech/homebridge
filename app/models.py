@@ -134,13 +134,36 @@ class ViewingAppointment(db.Model):
     proposed_by = db.relationship("User", foreign_keys=[proposed_by_id])
 
 
+class TenancyOffer(db.Model):
+    """A landlord's proposed rental terms for an approved student application."""
+    id = db.Column(db.Integer, primary_key=True)
+    application_id = db.Column(db.Integer, db.ForeignKey("application.id"), nullable=False, unique=True, index=True)
+    proposed_by_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    rent_amount = db.Column(db.Numeric(12, 2), nullable=False)
+    rent_currency = db.Column(db.String(10), nullable=False, default="USD")
+    rent_period = db.Column(db.String(20), nullable=False, default="month")
+    room_label = db.Column(db.String(100))
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date)
+    terms = db.Column(db.Text)
+    status = db.Column(db.String(20), nullable=False, default="proposed")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    application = db.relationship("Application", backref=db.backref("tenancy_offer", uselist=False))
+    proposed_by = db.relationship("User", foreign_keys=[proposed_by_id])
+
+
 class Tenancy(db.Model):
     """Active or historical student tenancy at a property."""
     id = db.Column(db.Integer, primary_key=True)
     property_id = db.Column(db.Integer, db.ForeignKey("property.id"), nullable=False, index=True)
     student_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     room_label = db.Column(db.String(100))
-    monthly_rent = db.Column(db.Numeric(12, 2), nullable=False)
+    monthly_rent = db.Column(db.Numeric(12, 2), nullable=True)
+    application_id = db.Column(db.Integer, db.ForeignKey("application.id"), unique=True, index=True)
+    rent_amount = db.Column(db.Numeric(12, 2))
+    rent_currency = db.Column(db.String(10), nullable=False, default="USD")
+    rent_period = db.Column(db.String(20), nullable=False, default="month")
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date)
     status = db.Column(db.String(30), default="active", nullable=False)
