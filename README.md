@@ -31,75 +31,116 @@ HomeBridge is a student-focused accommodation marketplace and property-managemen
 
 > **Environment note:** `homebridge.co.zw` is the intended public production domain. The currently deployed and verified development/testing environment is `homebridge.cyphertech.co.zw` on the Oracle instance. The student, landlord, admin, and API URLs above describe the planned/public route structure and should not be assumed to be independently deployed unless verified.
 
-## Latest team handover (27 October 2026)
+## Latest team handover — 2 November 2026
 
-This section is the current working status for Shelton and anyone continuing development.
+This section supersedes older status notes where they conflict. It is the latest shared project status for Tariro and Shelton.
 
-### Verified deployment status
+### Executive status
 
-- The Oracle development/test site is reachable over HTTPS: https://homebridge.cyphertech.co.zw/properties
-- The public accommodation page renders its HomeBridge navigation, search filters, and the “Student Accommodation” heading.
-- The page currently reports **0 listings**. This can be expected when no properties meet the public listing criteria (published and available); it is not by itself proof that the database or listing route is broken.
-- The expected root behavior is a redirect to `/properties`.
+<badge>Development milestone verified</badge>
+
+The latest completed milestone is **tenancy onboarding**. The landlord offer flow, student accept/decline flow, and tenancy dashboards were deployed to the Oracle development environment and confirmed through browser testing by the project team.
+
+### Completed and verified this week
+
+- Landlords can send a tenancy offer only when the student's application is approved and the viewing has been confirmed.
+- Offers capture rent amount, currency (USD, ZiG or ZAR), rent period (month, week or term), optional room/unit label, start and end dates, and terms.
+- Students can review and accept or decline offers from **My Applications**.
+- Accepting an offer creates the HomeBridge tenancy record; declining it does not create a tenancy.
+- Student and landlord tenancy pages are available and linked from their dashboards.
+- An application-linked unique tenancy reference prevents duplicate tenancy creation.
+- The database migration was applied to the `homebridge_dev` database.
+- A database backup was taken before the migration.
+- The application was updated from GitHub, compiled, rebuilt and restarted on the Oracle development host.
+- The landlord offer and student response workflows were tested in the browser and confirmed by the team.
+
+### Technical / deployment notes
+
+- Repository: `tarieciphertech/homebridge`, branch `main`.
+- Oracle application directory: `/opt/homebridge/app`.
+- Compose file: `/opt/homebridge/docker-compose.yml`.
+- Development URL: https://homebridge.cyphertech.co.zw
+- Flask application uses SQLAlchemy and PostgreSQL.
+- Development database: `homebridge_dev`.
+- The app container uses host networking and Gunicorn listens on `127.0.0.1:5001`, behind Nginx.
+- Python compilation completed successfully before the container rebuild.
+- Unauthenticated HTTP checks for protected tenancy pages returned login redirects as expected; the actual authenticated workflows were separately confirmed in the browser.
+
+**Backups created before the tenancy migration:**
+- `/opt/homebridge/backups/homebridge_pre_tenancy_migration_20261102_191843.dump`
+- `/opt/homebridge/backups/homebridge_pre_tenancy_migration_20261102_192219.dump`
+
+Keep these backups until the migration and tenancy workflows have had sufficient testing. Never place database credentials, environment variables, SSH keys, or other secrets in this README.
+
+### Important product/legal distinction
+
+A HomeBridge tenancy record stores the details accepted through the platform. It is **not** a signed lease, legal rental contract, proof of rent payment, or confirmation that rent has been collected. The landlord and student must still complete their separate written rental agreement and handle rent payments through their agreed process.
+
+### Next priorities — proposed for the next weekly cycle
+
+These are planned items, not claims of completed functionality:
+
+1. **Formal rental agreement workflow:** prepare a downloadable agreement using the accepted tenancy details, with clear review and signature steps. Confirm the appropriate legal wording before treating it as a binding contract.
+2. **Notifications:** notify landlords and students when an offer is sent, accepted, declined, or approaching its start date.
+3. **Tenancy edge-case QA:** test invalid date ranges, expired offers, duplicate submissions, repeated clicks, access by the wrong user, and overlapping tenancy scenarios.
+4. **Tenancy management improvements:** review how parties view tenancy status, key dates, rent terms, and contact details.
+5. **Regression testing:** recheck application approval, viewing coordination, tenancy offer, student response, and dashboard navigation after subsequent changes.
+6. **Weekly planning:** agree which of these items should be prioritized before starting the next implementation slice.
+
+### Weekly project update agreement
+
+Tariro and Shelton agreed to maintain a **weekly project update** rhythm. Each update should capture:
+
+- What was completed during the week.
+- What is deployed and what has been tested, including evidence or outstanding checks.
+- Technical decisions, database changes, and backups worth recording.
+- Current blockers, risks, and decisions requiring input from either teammate.
+- Priorities and ownership for the coming week.
+
+The README should be updated alongside each weekly handover so both contributors have one shared, current record of project progress. The weekly report is a progress record, not a substitute for Git history, deployment verification, or issue tracking.
+
+## Previous handover — 27 October 2026
+
+The following earlier notes are retained as historical context. Where they conflict with the 2 November handover above, use the latest status.
+
+### Verified deployment status at that time
+
+- The Oracle development/test site was reachable over HTTPS: https://homebridge.cyphertech.co.zw/properties
+- The public accommodation page rendered HomeBridge navigation, search filters, and the “Student Accommodation” heading.
+- The page reported **0 listings** at the time. This can be expected when no properties meet the public listing criteria (published and available); it is not by itself proof that the database or listing route is broken.
+- The expected root behavior was a redirect to `/properties`.
 - The deployment uses the existing shared Oracle server. Do not rebuild the host or change shared Nginx/PostgreSQL/Docker settings without checking other services first.
 
 ### Account display-name issue to investigate
 
-The live page showed **“Lexxi Cipher”** in its visible navigation/account area. GitHub code searches for `Lexxi`, `lexxi`, and `agent` returned no matches in the active repository at the time of checking. This suggests the displayed name may be coming from a persisted user record or session, but that has **not yet been confirmed**.
+The live page showed **“Lexxi Cipher”** in its visible navigation/account area. This was not confirmed as a code-level issue. Before changing anything, inspect the HomeBridge user table, identify the account and role, confirm the intended development administrator, and preserve access. Do not delete an account or reset credentials without verifying ownership.
 
-Before changing anything:
-1. Inspect the HomeBridge `user` table in the `homebridge_dev` database.
-2. Identify which account has that display name and confirm its role/email.
-3. Confirm whether it is the intended development administrator before renaming or modifying it.
-4. Do not delete an account or reset credentials without verifying account ownership and preserving access.
-5. Recheck the live page after any approved correction.
+### Earlier implementation and roadmap notes
 
-Do not expose database passwords, session secrets, or admin credentials in this README, commits, screenshots, or chat.
+The project has foundations for student/landlord authentication, role-based dashboards, property submissions and image uploads, admin property review/publication, student applications, configurable student service and landlord listing fees, payment-proof submissions, admin payment review, inquiries, and platform settings.
 
-### Current implementation status
+The earlier Phase 3 finance/revenue work included an admin revenue page, date presets and custom date ranges, currency-separated summaries, payment history filters, student/landlord payment history, POST-based confirm/reject actions for pending payments, and separation of landlord account approval from listing-fee confirmation. Continue to verify those workflows on the live development instance before treating them as production-ready.
 
-Implemented foundations include student/landlord authentication, role-based dashboards, property submissions and image uploads, admin property review/publication, student applications, configurable student service and landlord listing fees, payment-proof submissions, admin payment review, inquiries, and platform settings.
+Finance rules:
+- Only platform `Payment` records with `status = confirmed` count as HomeBridge platform revenue.
+- Pending and rejected payments are not revenue.
+- Rent-payment records belong to the landlord/tenant rental flow and must not be counted as HomeBridge platform-fee revenue unless a separate, explicitly defined business rule is added.
+- Do not combine different currencies into a misleading single total.
+- Keep landlord account approval separate from confirming a landlord listing-fee payment.
 
-The database has tables for users, properties/images, applications, inquiries, platform payments/settings, tenancies, rent payments, and maintenance requests. The presence of tenancy/rent tables does **not** mean the complete rental lifecycle has been finished.
-
-### Next work — Phase 3: Finance and revenue
-
-The next development phase should focus on:
-
-1. Build an admin revenue dashboard based on **confirmed platform payments only**.
-2. Show totals by currency and payment type; do not combine different currencies into a misleading single total.
-3. Show confirmed, pending, and rejected amounts/counts separately.
-4. Add date filters (today, last 7 days, last 30 days, all time, and/or custom range).
-5. Add student and landlord payment history with payment type, amount/currency, status, reference, submitted date, and confirmation date where available.
-6. Make payment-proof access admin-only and handle missing files safely.
-7. Keep landlord account approval separate from confirming a landlord listing-fee payment. A payment confirmation must not silently approve the account.
-8. Consider recording which admin confirmed/rejected a payment (`confirmed_by`) and the decision timestamp.
-9. Add dashboard navigation to revenue and payment history, then test all status/date filters against known records.
-
-**Finance rules:** only `Payment` records with `status = confirmed` count as platform revenue. Pending and rejected payments are not revenue. Rent-payment records belong to the landlord/tenant rental flow and must not be counted as HomeBridge platform-fee revenue unless a separate, explicitly defined business rule is added.
-
-### Next — Zimbabwe-first marketplace rollout
+### Zimbabwe-first marketplace rollout
 
 - Validate institution/campus search and local rent terms on the live development deployment.
 - Build and maintain a verified directory of Zimbabwean institutions and campuses, starting with Harare, Bulawayo and Gweru.
 - Add student profile preferences for institution, campus, budget and intended move-in period.
 - Add parent/guardian-assisted inquiry and application support for younger students, with appropriate privacy and safeguarding controls.
-- Expand admin review and reporting to make institution coverage and verified inventory visible.
 - Recruit real landlords and obtain consented property photographs before publishing inventory.
-
-### After Phase 3 — Phase 4: Rental management
-
-Implement and test the application decision workflow, approved application to tenancy creation, rent schedules, rent-payment submission and verification, student/landlord rent history, and admin oversight. Avoid creating duplicate tenancies when an application is processed more than once.
-
-### Deployment and verification checklist
-
-After a change is merged/pushed to `main`, update the Oracle test host using the deployment commands below, then verify the changed pages and relevant role permissions. Do not claim a feature is deployed just because its code is committed; verify the live endpoint and workflow.
 
 ## Project status
 
 **Current stage: active development / testing**
 
-The core marketplace, user roles, property workflow, payment foundations, and admin controls are implemented. The project is currently being developed and tested on a shared Oracle Cloud development instance.
+The core marketplace, user roles, property workflow, payment foundations, admin controls, viewing coordination, and tenancy onboarding are implemented to varying degrees. The latest tenancy onboarding slice is deployed and browser-verified in the Oracle development environment. This is not a declaration that the entire platform is production-ready.
 
 ### Current development environment
 
@@ -120,70 +161,89 @@ The development environment is intentionally separate from the public production
 
 ### Students
 
-- Create a student account
-- Browse published student accommodation
-- Filter accommodation by type, city and available rooms
-- View property photos, amenities, rules and availability
-- Submit and track accommodation applications
-- Withdraw pending applications
-- Submit student service-fee payment proof when a fee is configured
+- Create a student account.
+- Browse published student accommodation.
+- Filter accommodation by type, city and available rooms.
+- View property photos, amenities, rules and availability.
+- Submit and track accommodation applications.
+- Withdraw pending applications.
+- Respond to tenancy offers and view tenancy details.
+- Submit student service-fee payment proof when a fee is configured.
 
 ### Landlords
 
-- Create a landlord account
-- Wait for platform approval
-- Add and edit accommodation properties
-- Upload multiple property photos
-- Set rent, rooms, amenities, house rules and availability
-- Submit properties for admin verification
-- Track verification and publication status
-- Submit listing-fee payment proof when a listing fee is configured
+- Create a landlord account and wait for platform approval.
+- Add and edit accommodation properties.
+- Upload multiple property photos.
+- Set rent, rooms, amenities, house rules and availability.
+- Submit properties for admin verification.
+- Track verification and publication status.
+- Review applications and coordinate viewings.
+- Send tenancy offers for approved applications after viewing confirmation.
+- View tenancy details.
+- Submit listing-fee payment proof when a listing fee is configured.
 
 ### Admins
 
-- Manage students and landlords
-- Approve landlord accounts
-- Review, verify and reject property submissions
-- Publish/unpublish verified properties
-- Feature published properties
-- Review platform payments and payment proof
-- Configure student service and landlord listing fees
-- Manage inquiries
-- Manage admin settings
-- Change the admin password
+- Manage students and landlords.
+- Approve landlord accounts.
+- Review, verify and reject property submissions.
+- Publish/unpublish verified properties.
+- Feature published properties.
+- Review platform payments and payment proof.
+- Configure student service and landlord listing fees.
+- Manage inquiries and admin settings.
+- Review platform revenue and payment history.
 
 ## Implemented functionality
 
 ### Authentication and accounts
 
-- Student registration and login
-- Landlord registration and login
-- Admin account
-- Role-based dashboard redirects
-- Account approval checks
-- Logout
-- Default development admin creation
+- Student registration and login.
+- Landlord registration and login.
+- Admin account.
+- Role-based dashboard redirects.
+- Account approval checks.
+- Logout.
+- Default development admin creation.
 
 ### Property marketplace
 
-- Public property listing
-- Property filtering
-- Property detail pages
-- Similar-property display
-- Landlord property creation and editing
-- Property image upload and deletion
-- Property submission for verification
-- Admin verification, rejection and publication workflow
-- Featured-property support
-- Availability and room tracking
+- Public property listing and filtering.
+- Property detail pages and similar-property display.
+- Landlord property creation and editing.
+- Property image upload and deletion.
+- Property submission for verification.
+- Admin verification, rejection and publication workflow.
+- Featured-property support.
+- Availability and room tracking.
 
-### Applications
+### Applications and viewing coordination
 
-- Students can apply to published properties
-- Duplicate active applications are prevented
-- Students can view application status
-- Pending applications can be withdrawn
-- Applications are tied to the student and property
+- Students can apply to published properties.
+- Duplicate active applications are prevented.
+- Students can view application status.
+- Pending applications can be withdrawn.
+- Applications are tied to the student and property.
+- Landlords can propose viewing dates/times and meeting instructions after accepting an application.
+- Students can confirm or decline proposed viewings from **My Applications**.
+- Landlords can cancel proposed or confirmed viewings and issue a replacement proposal.
+- Viewing date/time input is interpreted as Zimbabwe local time (Africa/Harare).
+- A confirmed viewing does not itself create a tenancy.
+
+### Tenancy onboarding
+
+- Landlords can send tenancy offers for approved applications after viewing confirmation.
+- Offers record rent amount, currency (USD, ZiG or ZAR), period (month, week or term), optional room/unit, start/end dates and terms.
+- Students can accept or decline offers from **My Applications**.
+- Accepting creates a tenancy record; declining does not.
+- Student and landlord tenancy pages are linked from their dashboards.
+- New tenancy records retain `rent_amount`, `rent_currency` and `rent_period`; legacy `monthly_rent` remains nullable for compatibility and is populated only for monthly offers.
+- An application-linked unique tenancy reference prevents duplicate tenancy creation.
+
+The tenancy migration was applied to the development database on 2 November 2026 after database backups were created. Do not repeat the migration blindly. Before any further schema change, inspect the live schema and use a reviewed, backed-up migration.
+
+**Scope boundary:** the current tenancy flow records accepted terms inside HomeBridge. It does not generate a signed lease, collect rent, or prove payment.
 
 ### Payments and fees
 
@@ -193,32 +253,13 @@ The platform supports configurable fees rather than hard-coded business prices:
 
 `Landlord → Listing / Management Fee → HomeBridge`
 
-Admin settings currently support:
-
-- Student service fee
-- Student service-fee currency
-- Landlord listing fee
-
-Payment records support confirmation/rejection workflows and uploaded payment proof.
-
-> **Important development note:** landlord account approval and listing-fee confirmation should remain separate business processes. This is an area to review during the next payment/revenue phase.
+Admin settings support student service fee, student service-fee currency, and landlord listing fee. Payment records support confirmation/rejection workflows and uploaded payment proof.
 
 ## Database
 
-The current PostgreSQL development database contains these application tables:
+The PostgreSQL development database contains application tables for users, properties/images, applications, inquiries, platform payments/settings, viewing appointments, tenancies, rent payments, and maintenance requests. Exact schema should be checked against the running database before planning migrations.
 
-- `user`
-- `property`
-- `property_image`
-- `application`
-- `inquiry`
-- `payment`
-- `platform_setting`
-- `tenancy`
-- `rent_payment`
-- `maintenance_request`
-
-The application currently uses SQLAlchemy `db.create_all()` for development database initialization. A proper migration system should be introduced before production deployment.
+The development app has used SQLAlchemy `db.create_all()` for table creation, but this does not alter existing tables to add new columns. The tenancy schema change required a separate migration. Introduce and use a managed migration system consistently before production deployment.
 
 ## Technology stack
 
@@ -279,7 +320,7 @@ For local PostgreSQL development, configure `DATABASE_URL` through the environme
 
 ## Oracle development deployment
 
-The current test deployment lives outside the Git repository at `/opt/homebridge` on the Oracle instance.
+The current test deployment lives outside the Git repository under `/opt/homebridge` on the Oracle instance.
 
 The application is pulled from the GitHub `main` branch and built with Docker Compose. The production-style container uses Gunicorn and binds only to localhost:
 
@@ -316,110 +357,25 @@ Check the application after deployment:
 curl -I https://homebridge.cyphertech.co.zw/
 ```
 
-A `302` response redirecting `/` to `/properties` is expected behavior.
+A `302` response redirecting `/` to `/properties` is expected behavior. For authenticated features, verify the workflow in a browser using the appropriate role; an unauthenticated redirect is not proof that the feature itself works.
 
-## Important development notes
+## Important development and security notes
 
 - Do **not** commit `.env` files, database passwords, mail passwords, API keys, or other secrets.
 - The current Oracle database and credentials are for development/testing only.
 - Development admin/database credentials must be replaced before production.
-- The production deployment should use a proper database migration strategy instead of relying on `db.create_all()`.
-- The default admin creation logic currently runs during application startup. The development deployment uses one Gunicorn worker to avoid concurrent default-admin creation. This should be made concurrency-safe before scaling to multiple workers.
+- Use reviewed, backed-up database migrations for changes to existing tables. A container rebuild does not perform schema migrations automatically.
+- The default admin creation logic has previously run during application startup. Review it for concurrency safety before scaling to multiple workers.
 - Uploaded property images and payment proofs are stored outside Git-tracked source files.
 - The Oracle instance is a shared development/test environment and also hosts other Cypher Technologies services. Changes to Nginx, Docker, PostgreSQL, or firewall configuration must avoid disrupting existing services.
+- Do not publish server IPs, private keys, credentials, tokens, or database connection strings in public project documentation.
 
-## Next planned development phase
+## Team and collaboration
 
-### Phase 3 — implementation in progress (27 October 2026)
+HomeBridge is being developed by **Tariro Mtshakatshi (Tarie Cipher)** and **Shelton Moyo**.
 
-The first Phase 3 code slice has now been committed to `main`:
-
-- Added an admin revenue page at `/admin/revenue`.
-- Added date presets (today, last 7 days, last 30 days, all time) and a custom date range.
-- Added payment status summaries split by currency so different currencies are not combined.
-- Added confirmed platform revenue breakdown by payment type and currency.
-- Added payment history filters for status and fee type.
-- Added student and landlord payment-history pages linked from their dashboards; each user can only see their own platform-payment records.
-- Changed payment confirm/reject actions to POST requests and made them accept pending payments only.
-- Removed the side effect that automatically approved a landlord account when their listing-fee payment was confirmed. Payment approval and landlord account approval are separate workflows.
-- Added navigation from the admin dashboard to the revenue page.
-
-**Not yet verified on the live Oracle instance.** These changes are in GitHub; deploy them to the Oracle test host and run the checks below before treating Phase 3 as production-ready.
-
-#### Phase 3 deployment and smoke test
-
-```bash
-cd /opt/homebridge/app
-git pull origin main
-cd /opt/homebridge
-docker compose up -d --build
-docker compose ps
-docker logs --tail=100 homebridge
-curl -I https://homebridge.cyphertech.co.zw/admin/revenue
-```
-
-The revenue page requires an authenticated admin session, so a redirect to login when using unauthenticated `curl` is expected. Log in as an admin and verify `/admin/revenue`, the period filters, `/admin/payments` filters, and confirm/reject actions in a browser. Confirm a landlord listing-fee payment and verify the landlord account's approval flag does not change automatically.
-
-### Phase 3 — Finance and revenue
-
-Planned work includes:
-
-1. Admin revenue dashboard
-2. Confirmed-payment revenue calculations
-3. Revenue breakdown by fee type
-4. Pending, rejected and confirmed payment totals
-5. Period filters (today, 7 days, 30 days, all/custom)
-6. Student and landlord payment history
-7. Payment reference/proof visibility
-8. Separate landlord account approval from listing-fee confirmation
-9. Optional `confirmed_by` tracking for payments
-
-### Phase 4 — Rental management
-
-Planned work includes:
-
-- Application decision workflow
-- Application approval → tenancy creation
-- Monthly rent schedules
-- Rent payment records
-- Rent payment verification
-- Student rent history
-- Landlord rent history
-- Admin rental oversight
-- Maintenance workflow improvements
-
-## Team
-
-HomeBridge is being developed by **Tarie Cipher** and **Shelton Moyo**.
-
-Repository access should be limited to authorized project contributors. Never share GitHub passwords, personal access tokens, SSH private keys, or server credentials between team members.
+The team has agreed to maintain weekly progress updates. Keep this README current after each weekly handover, recording completed work, verification status, important technical decisions, blockers, and next priorities. Repository access should be limited to authorized project contributors. Never share GitHub passwords, personal access tokens, SSH private keys, or server credentials.
 
 ## Legacy repository
 
 The original `tarieciphertech/server-13-53-116-180-edcar` repository is intentionally left unchanged. `tarieciphertech/homebridge` is the active standalone HomeBridge repository.
-
-
-### Viewing coordination — implementation slice (2 November 2026)
-
-The application review workflow now supports a viewing appointment after a landlord accepts an application:
-
-- A landlord can propose a future viewing date/time and provide a meeting point or instructions.
-- A student can confirm or decline a proposed viewing from **My Applications**.
-- A landlord can cancel a proposed or confirmed viewing and can issue a replacement proposal after a declined/cancelled appointment.
-- Viewing appointments are one-per-application and remain separate from tenancy creation. An accepted application or confirmed viewing does not itself create a tenancy or rental contract.
-- Viewing date/time input is interpreted as Zimbabwe local time (Africa/Harare).
-
-The new ViewingAppointment table is created by the development app's existing db.create_all() startup. Before production, add a managed database migration for this table and test role ownership, date/time handling, and the full landlord/student flow on the Oracle development host.
-
-
-### Tenancy onboarding — implementation slice (2 November 2026)
-
-- A landlord can send a tenancy offer for an approved application after the student has confirmed the viewing.
-- The offer records rent amount, currency (USD, ZiG or ZAR), period (month, week or term), optional room/unit, start/end dates and terms.
-- The student can accept or decline from **My Applications**. Only acceptance creates a Tenancy record; declining creates no tenancy.
-- Student and landlord tenancy pages are linked from their dashboards.
-- New tenancy records retain the agreed `rent_amount`, `rent_currency` and `rent_period`; legacy `monthly_rent` remains nullable for compatibility and is populated only for monthly offers.
-- An application-linked unique tenancy reference prevents duplicate tenancy creation.
-- This is a HomeBridge record of agreed details, not a signed lease, legal rental contract, rent collection or proof of payment. Parties should complete their separate written rental agreement.
-
-**Database migration required before deployment:** the development app's `db.create_all()` creates the new `TenancyOffer` table but does not add columns to the existing `tenancy` table. Back up the database, then use a reviewed migration to add `application_id`, `rent_amount`, `rent_currency` and `rent_period` to `tenancy`, and make legacy `monthly_rent` nullable. Do not assume a container rebuild performs this migration.
