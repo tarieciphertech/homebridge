@@ -406,6 +406,15 @@ def review_rental_agreement(tenancy_id):
     if not record_review(agreement, "landlord"):
         flash("The signed agreement copy has already been uploaded; review is locked.", "warning")
     else:
+        create_in_app_notification(
+            tenancy.student_id,
+            "agreement_reviewed",
+            "Rental agreement reviewed",
+            f"{current_user.name} recorded a review of the rental agreement for {tenancy.property.title}.",
+            url_for("student.rental_agreement", tenancy_id=tenancy.id),
+            current_user.id,
+        )
+        db.session.commit()
         flash("Your agreement review has been recorded.", "success")
     return redirect(url_for("landlord.rental_agreement", tenancy_id=tenancy.id))
 
@@ -423,6 +432,15 @@ def upload_signed_rental_agreement(tenancy_id):
     except ValueError as exc:
         flash(str(exc), "danger")
         return redirect(url_for("landlord.rental_agreement", tenancy_id=tenancy.id))
+    create_in_app_notification(
+        tenancy.student_id,
+        "agreement_signed_copy_uploaded",
+        "Signed rental agreement copy uploaded",
+        f"{current_user.name} uploaded a signed rental agreement copy for {tenancy.property.title}.",
+        url_for("student.rental_agreement", tenancy_id=tenancy.id),
+        current_user.id,
+    )
+    db.session.commit()
     flash("Signed PDF uploaded. HomeBridge has stored the document; it has not independently verified signatures or legal validity.", "success")
     return redirect(url_for("landlord.rental_agreement", tenancy_id=tenancy.id))
 
