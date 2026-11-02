@@ -93,13 +93,15 @@ def save_local_details(prop):
     except ValueError:
         details.distance_km = None
     currency = request.form.get("rent_currency", "USD").strip().upper()
-    details.rent_currency = currency if currency in {"USD", "ZIG", "ZAR"} else "USD"
+    currency_map = {"USD": "USD", "ZIG": "ZiG", "ZAR": "ZAR"}
+    details.rent_currency = currency_map.get(currency, "USD")
     period = request.form.get("rent_period", "month").strip().lower()
     details.rent_period = period if period in {"month", "week", "term"} else "month"
-    if not details.institution_name and not details.campus_name and not raw_distance:
+    if (not details.institution_name and not details.campus_name and not raw_distance
+            and details.rent_currency == "USD" and details.rent_period == "month"):
         if prop.local_details:
             db.session.delete(prop.local_details)
-    elif not prop.local_details:
+    else:
         db.session.add(details)
 
 
