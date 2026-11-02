@@ -1,5 +1,5 @@
 from functools import wraps
-from datetime import datetime
+from datetime import datetime\nfrom calendar import monthrange
 import os
 from uuid import uuid4
 
@@ -114,7 +114,7 @@ def submit_rent_payment(tenancy_id):
             existing_start, existing_end = existing.period_start, existing.period_end
         else:
             existing_start = datetime.strptime(existing.payment_month + "-01", "%Y-%m-%d").date()
-            existing_end = (existing_start.replace(day=28) + __import__("datetime").timedelta(days=4)).replace(day=1) - __import__("datetime").timedelta(days=1)
+            existing_end = existing_start.replace(day=monthrange(existing_start.year, existing_start.month)[1])
         if period_start <= existing_end and period_end >= existing_start:
             flash("A pending or confirmed rent payment already covers part of that period.", "warning")
             return redirect(url_for("student.rent_payments"))
