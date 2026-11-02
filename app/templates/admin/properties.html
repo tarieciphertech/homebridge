@@ -14,10 +14,10 @@
         <tbody>
         {% for p in properties %}
           <tr>
-            <td>{{ p.title }}<small class="d-block text-muted">{{ p.location }}, {{ p.city }}</small></td>
+            <td>{{ p.title }}<small class="d-block text-muted">{{ p.location }}, {{ p.city }}</small>{% if p.local_details and p.local_details.institution_name %}<small class="d-block text-success"><i class="fas fa-graduation-cap me-1"></i>{{ p.local_details.institution_name }}{% if p.local_details.campus_name %} · {{ p.local_details.campus_name }}{% endif %}</small>{% endif %}</td>
             <td>{{ p.landlord.name }}<small class="d-block text-muted">{{ p.landlord.email }}</small></td>
             <td>{{ p.property_type|title }}</td>
-            <td>{{ p.price }}</td>
+            <td>{{ p.local_details.rent_currency if p.local_details else "USD" }} {{ p.price }}<small class="d-block text-muted">per {{ p.local_details.rent_period if p.local_details else "month" }}</small></td>
             <td>
               {% if p.is_verified %}<span class="badge bg-success">Verified</span>
               {% else %}<span class="badge bg-warning text-dark">Pending / Rejected</span>{% endif %}
