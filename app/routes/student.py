@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 
 from app.agreement_workflow import get_or_create_agreement, record_review, store_signed_pdf
 from app.notifications import create_in_app_notification
-from app.models import Application, Payment, PlatformSetting, Property, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
+from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
 
 student = Blueprint("student", __name__, url_prefix="/student")
 
@@ -65,6 +65,47 @@ def dashboard():
     return render_template("student/dashboard.html", applications=applications, payments=payments, featured_properties=featured, tenancies=tenancies, service_fee=student_service_fee(), service_fee_paid=has_confirmed_service_fee())
 
 
+
+
+@student.route("/maintenance")
+@student_required
+def maintenance():
+    items = MaintenanceRequest.query.filter_by(reported_by_id=current_user.id).order_by(MaintenanceRequest.reported_at.desc()).all()
+    tenancies = Tenancy.query.filter_by(student_id=current_user.id, status="active").order_by(Tenancy.created_at.desc()).all()
+    return render_template("student/maintenance.html", requests=items, tenancies=tenancies)
+
+
+@student.route("/tenancies/<int:tenancy_id>/maintenance", methods=["POST"])
+@student_required
+def report_maintenance(tenancy_id):
+    tenancy = Tenancy.query.filter_by(id=tenancy_id, student_id=current_user.id, status="active").first_or_404()
+    title = request.form.get("title", "").strip()[:200]
+    description = request.form.get("description", "").strip()
+    priority = request.form.get("priority", "normal").strip().lower()
+    if not title or not description:
+        flash("Add a title and description for the maintenance issue.", "danger")
+    elif priority not in {"low", "normal", "high", "urgent"}:
+        flash("Choose a valid priority.", "danger")
+    else:
+        item = MaintenanceRequest(
+            property_id=tenancy.property_id,
+            reported_by_id=current_user.id,
+            title=title,
+            description=description[:5000],
+            priority=priority,
+        )
+        db.session.add(item)
+        create_in_app_notification(
+            tenancy.property.landlord_id,
+            "maintenance_reported",
+            "New maintenance request",
+            f"{current_user.name} reported: {title} at {tenancy.property.title}.",
+            url_for("landlord.maintenance"),
+            current_user.id,
+        )
+        db.session.commit()
+        flash("Your maintenance request has been sent to the landlord.", "success")
+    return redirect(url_for("student.maintenance"))
 
 @student.route("/tenancies")
 @student_required
