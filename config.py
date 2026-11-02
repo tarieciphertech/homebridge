@@ -5,7 +5,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True, "pool_recycle": 300}
     BASEDIR = os.path.abspath(os.path.dirname(__file__))
-    UPLOAD_FOLDER = os.path.join(BASEDIR, 'app/static/uploads')
+    UPLOAD_FOLDER = os.path.join(BASEDIR, 'app/static/uploads')\n    # Private documents must never be stored under Flask's public static directory.\n    PRIVATE_UPLOAD_FOLDER = os.environ.get('PRIVATE_UPLOAD_FOLDER', os.path.join(os.path.dirname(BASEDIR), 'homebridge-private-uploads'))
     MAX_CONTENT_LENGTH = 32 * 1024 * 1024
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.zoho.com')
     MAIL_PORT = 587
