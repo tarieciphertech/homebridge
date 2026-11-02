@@ -22,8 +22,8 @@
 <a class="nav-link" href="{{ url_for('public.properties') }}">Find a home</a>
 {% if current_user.is_authenticated %}
 {% if current_user.role=='admin' %}<a class="nav-link" href="{{ url_for('admin_bp.dashboard') }}">Admin Dashboard</a>
-{% elif current_user.role=='landlord' %}<a class="nav-link" href="{{ url_for('landlord.dashboard') }}">Landlord Dashboard</a>
-{% else %}<a class="nav-link" href="{{ url_for('student.dashboard') }}">My Dashboard</a><a class="nav-link" href="{{ url_for('student.service_fee') }}">Service Fee</a>{% endif %}
+{% elif current_user.role=='landlord' %}<a class="nav-link" href="{{ url_for('landlord.dashboard') }}">Landlord Dashboard</a><a class="nav-link" href="{{ url_for('landlord.maintenance') }}">Maintenance</a>
+{% else %}<a class="nav-link" href="{{ url_for('student.dashboard') }}">My Dashboard</a><a class="nav-link" href="{{ url_for('student.service_fee') }}">Service Fee</a><a class="nav-link" href="{{ url_for('student.maintenance') }}">Maintenance</a>{% endif %}
 <a class="nav-link" href="{{ url_for('notifications.index') }}">Notifications {% if unread_notification_count %}<span class="badge rounded-pill text-bg-success">{{ unread_notification_count }}</span>{% endif %}</a><a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
 {% else %}<a class="nav-link" href="{{ url_for('auth.login') }}">Login</a><a class="btn btn-gold ms-lg-2 px-3" href="{{ url_for('auth.register') }}">Get started</a>{% endif %}
 </div></div></div></nav>
