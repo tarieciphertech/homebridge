@@ -49,7 +49,7 @@ def save_property_image(file):
         return None
     stem, extension = os.path.splitext(original)
     filename = f"{stem}-{uuid4().hex[:10]}{extension.lower()}"
-    folder = os.path.join(current_app.config["PRIVATE_UPLOAD_FOLDER"], "properties")
+    folder = os.path.join(current_app.config["UPLOAD_FOLDER"], "properties")
     os.makedirs(folder, exist_ok=True)
     file.save(os.path.join(folder, filename))
     return os.path.join("properties", filename)
@@ -59,7 +59,7 @@ def save_payment_proof(file):
     filename = secure_filename(file.filename)
     if not filename:
         return None
-    folder = os.path.join(current_app.config["PRIVATE_UPLOAD_FOLDER"], "proofs")
+    folder = os.path.join(current_app.config["UPLOAD_FOLDER"], "proofs")
     os.makedirs(folder, exist_ok=True)
     stem, extension = os.path.splitext(filename)
     final_name = f"{stem}-{uuid4().hex[:10]}{extension.lower()}"
@@ -458,7 +458,7 @@ def edit_property(property_id):
 @landlord_required
 def delete_image(property_id, image_id):
     image = PropertyImage.query.join(Property).filter(Property.id == property_id, Property.landlord_id == current_user.id, PropertyImage.id == image_id).first_or_404()
-    image_path = os.path.join(current_app.config["PRIVATE_UPLOAD_FOLDER"], image.filename)
+    image_path = os.path.join(current_app.config["UPLOAD_FOLDER"], image.filename)
     if os.path.exists(image_path):
         os.remove(image_path)
     prop = image.property
