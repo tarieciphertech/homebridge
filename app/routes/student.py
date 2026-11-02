@@ -95,21 +95,29 @@ def submit_rent_payment(tenancy_id):
         flash(f"Rent payments must use the tenancy currency ({tenancy.rent_currency}).", "danger")
         return redirect(url_for("student.rent_payments"))
 
-    payment_month = request.form.get("payment_month", "").strip()
     try:
-        datetime.strptime(payment_month + "-01", "%Y-%m-%d")
+        period_start = datetime.strptime(request.form.get("period_start", ""), "%Y-%m-%d").date()
+        period_end = datetime.strptime(request.form.get("period_end", ""), "%Y-%m-%d").date()
+        if period_end < period_start:
+            raise ValueError
     except ValueError:
-        flash("Choose a valid payment month.", "danger")
+        flash("Enter a valid rent coverage period; the end date cannot be before the start date.", "danger")
         return redirect(url_for("student.rent_payments"))
+    payment_month = period_start.strftime("%Y-%m")
 
-    duplicate = RentPayment.query.filter(
+    existing_payments = RentPayment.query.filter(
         RentPayment.tenancy_id == tenancy.id,
-        RentPayment.payment_month == payment_month,
         RentPayment.status.in_(["pending", "confirmed"]),
-    ).first()
-    if duplicate:
-        flash("A pending or confirmed rent payment already exists for that month.", "warning")
-        return redirect(url_for("student.rent_payments"))
+    ).all()
+    for existing in existing_payments:
+        if existing.period_start and existing.period_end:
+            existing_start, existing_end = existing.period_start, existing.period_end
+        else:
+            existing_start = datetime.strptime(existing.payment_month + "-01", "%Y-%m-%d").date()
+            existing_end = (existing_start.replace(day=28) + __import__("datetime").timedelta(days=4)).replace(day=1) - __import__("datetime").timedelta(days=1)
+        if period_start <= existing_end and period_end >= existing_start:
+            flash("A pending or confirmed rent payment already covers part of that period.", "warning")
+            return redirect(url_for("student.rent_payments"))
 
     try:
         proof_path = store_rent_payment_proof(request.files.get("proof_file"))
