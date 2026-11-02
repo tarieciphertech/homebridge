@@ -32,3 +32,21 @@ def notify_user_activated(user):
         mail.send(Message(subject="Your HomeBridge Landlord Account is Active", recipients=[user.email], body=f"Hi {user.name},\n\nYour landlord account has been approved and you can now submit property listings."))
     except Exception as exc:
         print(f"Email error: {exc}")
+
+
+def create_in_app_notification(user_id, event_type, title, message, target_url=None, actor_id=None):
+    """Queue a notification in the caller's current database transaction."""
+    from app.models import Notification, db
+
+    if not user_id:
+        return None
+    notification = Notification(
+        user_id=user_id,
+        actor_id=actor_id,
+        event_type=event_type,
+        title=title[:180],
+        message=message[:500],
+        target_url=target_url,
+    )
+    db.session.add(notification)
+    return notification
