@@ -8,7 +8,8 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
-from app.agreement_workflow import get_or_create_agreement, record_review, store_signed_pdf\nfrom app.notifications import create_in_app_notification
+from app.agreement_workflow import get_or_create_agreement, record_review, store_signed_pdf
+from app.notifications import create_in_app_notification
 from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, PropertyLocalDetails, RentPayment, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
 
 landlord = Blueprint("landlord", __name__, url_prefix="/landlord")
