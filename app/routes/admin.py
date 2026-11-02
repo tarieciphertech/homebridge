@@ -102,7 +102,7 @@ def landlords():
     return render_template("admin/landlords.html", landlords=User.query.filter_by(role="landlord").order_by(User.created_at.desc()).all())
 
 
-@admin_bp.route("/approve-landlord/<int:user_id>")
+@admin_bp.route("/approve-landlord/<int:user_id>", methods=["POST"])
 @login_required
 @admin_required
 def approve_landlord(user_id):
