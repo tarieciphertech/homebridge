@@ -46,7 +46,7 @@ def save_payment_proof(file):
     filename = secure_filename(file.filename)
     if not filename:
         return None
-    folder = os.path.join(current_app.config["PRIVATE_UPLOAD_FOLDER"], "proofs")
+    folder = os.path.join(current_app.config["UPLOAD_FOLDER"], "proofs")
     os.makedirs(folder, exist_ok=True)
     stem, extension = os.path.splitext(filename)
     final_name = f"{stem}-{uuid4().hex[:10]}{extension.lower()}"
