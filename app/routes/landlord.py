@@ -248,6 +248,67 @@ def cancel_viewing(application_id):
 
 
 
+
+@landlord.route("/rent-payments")
+@landlord_required
+def rent_payments():
+    items = RentPayment.query.join(Property).filter(
+        Property.landlord_id == current_user.id
+    ).order_by(RentPayment.submitted_at.desc()).all()
+    return render_template("landlord/rent_payments.html", rent_payments=items)
+
+
+@landlord.route("/rent-payments/<int:payment_id>/review", methods=["POST"])
+@landlord_required
+def review_rent_payment(payment_id):
+    payment = RentPayment.query.join(Property).filter(
+        RentPayment.id == payment_id,
+        Property.landlord_id == current_user.id,
+    ).first_or_404()
+    decision = request.form.get("decision", "").strip().lower()
+    notes = request.form.get("review_notes", "").strip()
+    if payment.status != "pending":
+        flash("This rent payment has already been reviewed.", "warning")
+        return redirect(url_for("landlord.rent_payments"))
+    if decision not in {"confirmed", "rejected"}:
+        flash("Choose confirm or reject.", "danger")
+        return redirect(url_for("landlord.rent_payments"))
+
+    payment.status = decision
+    payment.reviewed_by_id = current_user.id
+    payment.reviewed_at = datetime.utcnow()
+    payment.confirmed_at = payment.reviewed_at if decision == "confirmed" else None
+    payment.review_notes = notes[:5000] or None
+    create_in_app_notification(
+        payment.student_id,
+        "rent_payment_reviewed",
+        "Rent payment reviewed",
+        f"Your rent payment for {payment.payment_month} at {payment.property.title} was {decision}.",
+        url_for("student.rent_payments"),
+        current_user.id,
+    )
+    db.session.commit()
+    flash(f"Rent payment {decision}.", "success")
+    return redirect(url_for("landlord.rent_payments"))
+
+
+@landlord.route("/rent-payments/<int:payment_id>/proof")
+@landlord_required
+def download_rent_payment_proof(payment_id):
+    payment = RentPayment.query.join(Property).filter(
+        RentPayment.id == payment_id,
+        Property.landlord_id == current_user.id,
+    ).first_or_404()
+    if not payment.proof_file:
+        abort(404)
+    return send_from_directory(
+        current_app.config["PRIVATE_UPLOAD_FOLDER"],
+        payment.proof_file,
+        as_attachment=True,
+        download_name=f"rent-payment-proof-{payment.id}{os.path.splitext(payment.proof_file)[1]}",
+    )
+
+
 @landlord.route("/maintenance")
 @landlord_required
 def maintenance():
