@@ -7,7 +7,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
-from app.models import Application, Payment, PlatformSetting, Property, ViewingAppointment, db
+from app.models import Application, Payment, PlatformSetting, Property, Tenancy, TenancyOffer, ViewingAppointment, db
 
 student = Blueprint("student", __name__, url_prefix="/student")
 
@@ -59,8 +59,42 @@ def dashboard():
     applications = Application.query.filter_by(student_id=current_user.id).order_by(Application.submitted_at.desc()).limit(10).all()
     payments = Payment.query.filter_by(user_id=current_user.id).order_by(Payment.submitted_at.desc()).limit(10).all()
     featured = Property.query.filter_by(is_published=True, availability_status="available").order_by(Property.is_featured.desc(), Property.submitted_at.desc()).limit(6).all()
-    return render_template("student/dashboard.html", applications=applications, payments=payments, featured_properties=featured, service_fee=student_service_fee(), service_fee_paid=has_confirmed_service_fee())
+    tenancies = Tenancy.query.filter_by(student_id=current_user.id).order_by(Tenancy.created_at.desc()).limit(10).all()
+    return render_template("student/dashboard.html", applications=applications, payments=payments, featured_properties=featured, tenancies=tenancies, service_fee=student_service_fee(), service_fee_paid=has_confirmed_service_fee())
 
+
+
+@student.route("/tenancies")
+@student_required
+def tenancies():
+    items = Tenancy.query.filter_by(student_id=current_user.id).order_by(Tenancy.created_at.desc()).all()
+    offers = TenancyOffer.query.join(Application).filter(Application.student_id == current_user.id).order_by(TenancyOffer.created_at.desc()).all()
+    return render_template("student/tenancies.html", tenancies=items, offers=offers)
+
+
+@student.route("/applications/<int:application_id>/tenancy-offer/respond", methods=["POST"])
+@student_required
+def respond_to_tenancy_offer(application_id):
+    application = Application.query.filter_by(id=application_id, student_id=current_user.id).first_or_404()
+    offer = TenancyOffer.query.filter_by(application_id=application.id).first_or_404()
+    response = request.form.get("response", "").strip().lower()
+    if application.status != "approved" or offer.status != "proposed":
+        flash("This tenancy offer is no longer awaiting your response.", "warning")
+    elif response not in {"accepted", "declined"}:
+        flash("Choose accept or decline.", "danger")
+    elif response == "declined":
+        offer.status = "declined"
+        db.session.commit()
+        flash("You declined the offer. No tenancy has been created.", "info")
+    elif Tenancy.query.filter_by(application_id=application.id).first():
+        flash("A tenancy already exists for this application.", "warning")
+    else:
+        tenancy = Tenancy(application_id=application.id, property_id=application.property_id, student_id=current_user.id, room_label=offer.room_label, monthly_rent=offer.rent_amount if offer.rent_period == "month" else None, rent_amount=offer.rent_amount, rent_currency=offer.rent_currency, rent_period=offer.rent_period, start_date=offer.start_date, end_date=offer.end_date, status="active")
+        offer.status = "accepted"
+        db.session.add(tenancy)
+        db.session.commit()
+        flash("Offer accepted and tenancy record created. Complete any separate written rental agreement with the landlord.", "success")
+    return redirect(url_for("student.tenancies"))
 
 @student.route("/payments")
 @student_required
