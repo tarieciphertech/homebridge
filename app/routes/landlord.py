@@ -8,7 +8,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
-from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, PropertyLocalDetails, RentPayment, ViewingAppointment, db
+from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, PropertyLocalDetails, RentPayment, Tenancy, TenancyOffer, ViewingAppointment, db
 
 landlord = Blueprint("landlord", __name__, url_prefix="/landlord")
 
@@ -134,7 +134,8 @@ def dashboard():
     maintenance = MaintenanceRequest.query.filter(MaintenanceRequest.property_id.in_(property_ids)).order_by(MaintenanceRequest.reported_at.desc()).limit(10).all() if property_ids else []
     rent_payments = RentPayment.query.filter(RentPayment.property_id.in_(property_ids)).order_by(RentPayment.submitted_at.desc()).limit(10).all() if property_ids else []
     platform_payments = Payment.query.filter_by(user_id=current_user.id).order_by(Payment.submitted_at.desc()).limit(10).all()
-    return render_template("landlord/dashboard.html", properties=properties, applications=applications, maintenance=maintenance, rent_payments=rent_payments, platform_payments=platform_payments, listing_fee=listing_fee(), listing_fee_paid=has_confirmed_listing_fee())
+    tenancies = Tenancy.query.join(Property).filter(Property.landlord_id == current_user.id).order_by(Tenancy.created_at.desc()).limit(20).all()
+    return render_template("landlord/dashboard.html", properties=properties, applications=applications, maintenance=maintenance, rent_payments=rent_payments, platform_payments=platform_payments, tenancies=tenancies, listing_fee=listing_fee(), listing_fee_paid=has_confirmed_listing_fee())
 
 
 @landlord.route("/applications/<int:application_id>")
@@ -218,6 +219,70 @@ def cancel_viewing(application_id):
         flash("Viewing cancelled.", "success")
     return redirect(url_for("landlord.application_detail", application_id=application.id))
 
+
+
+@landlord.route("/tenancies")
+@landlord_required
+def tenancies():
+    items = Tenancy.query.join(Property).filter(Property.landlord_id == current_user.id).order_by(Tenancy.created_at.desc()).all()
+    offers = TenancyOffer.query.join(Application).join(Property).filter(Property.landlord_id == current_user.id).order_by(TenancyOffer.created_at.desc()).all()
+    return render_template("landlord/tenancies.html", tenancies=items, offers=offers)
+
+
+@landlord.route("/applications/<int:application_id>/tenancy-offer", methods=["POST"])
+@landlord_required
+def propose_tenancy_offer(application_id):
+    from decimal import Decimal, InvalidOperation
+    application = Application.query.join(Property).filter(Application.id == application_id, Property.landlord_id == current_user.id).first_or_404()
+    if application.status != "approved":
+        flash("A tenancy offer can only be made for an approved application.", "warning")
+        return redirect(url_for("landlord.application_detail", application_id=application.id))
+    viewing = ViewingAppointment.query.filter_by(application_id=application.id).first()
+    if not viewing or viewing.status != "confirmed":
+        flash("The student must confirm a viewing before you can make a tenancy offer.", "warning")
+        return redirect(url_for("landlord.application_detail", application_id=application.id))
+    if Tenancy.query.filter_by(application_id=application.id).first():
+        flash("A tenancy already exists for this application.", "warning")
+        return redirect(url_for("landlord.application_detail", application_id=application.id))
+    try:
+        amount = Decimal(request.form.get("rent_amount", "").strip())
+        if not amount.is_finite() or amount <= 0 or amount > Decimal("9999999999.99"):
+            raise InvalidOperation
+    except (InvalidOperation, ValueError):
+        flash("Enter a valid rent amount greater than zero.", "danger")
+        return redirect(url_for("landlord.application_detail", application_id=application.id))
+    currency = {"USD":"USD", "ZIG":"ZiG", "ZAR":"ZAR"}.get(request.form.get("rent_currency", "USD").strip().upper())
+    period = request.form.get("rent_period", "month").strip().lower()
+    if not currency or period not in {"month", "week", "term"}:
+        flash("Choose a supported rent currency and payment period.", "danger")
+        return redirect(url_for("landlord.application_detail", application_id=application.id))
+    try:
+        start_date = datetime.strptime(request.form.get("start_date", ""), "%Y-%m-%d").date()
+        raw_end = request.form.get("end_date", "").strip()
+        end_date = datetime.strptime(raw_end, "%Y-%m-%d").date() if raw_end else None
+    except ValueError:
+        flash("Enter valid tenancy dates.", "danger")
+        return redirect(url_for("landlord.application_detail", application_id=application.id))
+    today = datetime.now(ZoneInfo("Africa/Harare")).date()
+    if start_date < today or (end_date and end_date <= start_date):
+        flash("The start date must be today or later, and the end date must be after it.", "danger")
+        return redirect(url_for("landlord.application_detail", application_id=application.id))
+    offer = TenancyOffer.query.filter_by(application_id=application.id).first()
+    if offer and offer.status == "proposed":
+        flash("An offer is already awaiting the student's response.", "warning")
+        return redirect(url_for("landlord.application_detail", application_id=application.id))
+    if offer is None:
+        offer = TenancyOffer(application_id=application.id, proposed_by_id=current_user.id)
+        db.session.add(offer)
+    offer.proposed_by_id = current_user.id
+    offer.rent_amount, offer.rent_currency, offer.rent_period = amount, currency, period
+    offer.room_label = request.form.get("room_label", "").strip()[:100] or None
+    offer.start_date, offer.end_date = start_date, end_date
+    offer.terms = request.form.get("terms", "").strip()[:4000] or None
+    offer.status = "proposed"
+    db.session.commit()
+    flash("Tenancy offer sent. The student can review it under My Applications.", "success")
+    return redirect(url_for("landlord.application_detail", application_id=application.id))
 
 @landlord.route("/payments")
 @landlord_required
