@@ -213,8 +213,12 @@ class RentPayment(db.Model):
     status = db.Column(db.String(20), default="pending", nullable=False)
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     confirmed_at = db.Column(db.DateTime)
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    reviewed_at = db.Column(db.DateTime)
+    review_notes = db.Column(db.Text)
 
     tenancy = db.relationship("Tenancy", backref=db.backref("rent_payments", lazy=True))
+    reviewed_by = db.relationship("User", foreign_keys=[reviewed_by_id])
     property = db.relationship("Property", back_populates="rent_payments")
     student = db.relationship("User", foreign_keys=[student_id], backref="rent_payments")
 
