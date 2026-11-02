@@ -38,7 +38,7 @@
           {% if prop.main_image %}<img src="{{url_for('public.uploaded_file',filename=prop.main_image)}}" alt="{{prop.title}}" loading="lazy">
           {% else %}<img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1000&q=85" alt="Bright furnished accommodation interior" loading="lazy">{% endif %}
           {% if prop.is_featured %}<span class="hb-featured"><i class="fa-solid fa-star me-1"></i>Featured</span>{% endif %}
-          <span class="hb-photo-type">{{prop.property_type|title}}</span>
+          <span class="hb-photo-type">{{prop.property_type|replace('_', ' ')|title}}</span>
         </div>
         <div class="hb-property-info">
           <div class="hb-property-location"><i class="fa-solid fa-location-dot me-1"></i>{{prop.location}}, {{prop.city}}</div>
