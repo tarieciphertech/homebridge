@@ -56,6 +56,12 @@ jobs:
               "student.report_maintenance",
               "landlord.maintenance",
               "landlord.update_maintenance",
+              "student.rent_payments",
+              "student.submit_rent_payment",
+              "student.download_rent_payment_proof",
+              "landlord.rent_payments",
+              "landlord.review_rent_payment",
+              "landlord.download_rent_payment_proof",
               "landlord.tenancies",
               "student.tenancies",
           }
