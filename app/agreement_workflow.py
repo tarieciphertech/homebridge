@@ -65,7 +65,7 @@ def store_signed_pdf(agreement, uploaded_file, uploader_id):
 
     filename = f"agreement-{agreement.id}-{uuid4().hex}.pdf"
     relative_path = str(Path("agreements") / filename)
-    folder = Path(current_app.config["UPLOAD_FOLDER"]) / "agreements"
+    folder = Path(current_app.config["PRIVATE_UPLOAD_FOLDER"]) / "agreements"
     folder.mkdir(parents=True, exist_ok=True)
     uploaded_file.save(folder / filename)
 
