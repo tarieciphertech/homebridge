@@ -66,8 +66,11 @@ def store_signed_pdf(agreement, uploaded_file, uploader_id):
     filename = f"agreement-{agreement.id}-{uuid4().hex}.pdf"
     relative_path = str(Path("agreements") / filename)
     folder = Path(current_app.config["PRIVATE_UPLOAD_FOLDER"]) / "agreements"
-    folder.mkdir(parents=True, exist_ok=True)
-    uploaded_file.save(folder / filename)
+    folder.mkdir(parents=True, mode=0o700, exist_ok=True)
+    folder.chmod(0o700)
+    destination = folder / filename
+    uploaded_file.save(destination)
+    destination.chmod(0o600)
 
     agreement.signed_document_path = relative_path
     agreement.signed_uploaded_by_id = uploader_id
