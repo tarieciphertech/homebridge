@@ -51,7 +51,7 @@ jobs:
               "admin_bp.download_signed_agreement",
               "notifications.index",
               "notifications.open_notification",
-              "notifications.mark_all_read",
+              "notifications.mark_all_read",\n              "student.maintenance",\n              "student.report_maintenance",\n              "landlord.maintenance",\n              "landlord.update_maintenance",
               "landlord.tenancies",
               "student.tenancies",
           }
