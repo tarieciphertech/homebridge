@@ -96,6 +96,27 @@ def respond_to_tenancy_offer(application_id):
         flash("Offer accepted and tenancy record created. Complete any separate written rental agreement with the landlord.", "success")
     return redirect(url_for("student.tenancies"))
 
+@student.route("/tenancies/<int:tenancy_id>/agreement")
+@student_required
+def rental_agreement(tenancy_id):
+    tenancy = Tenancy.query.filter_by(
+        id=tenancy_id,
+        student_id=current_user.id
+    ).first_or_404()
+    offer = TenancyOffer.query.filter_by(application_id=tenancy.application_id, status="accepted").first()
+    if not offer:
+        flash("The accepted offer details for this tenancy could not be found.", "warning")
+        return redirect(url_for("student.tenancies"))
+    return render_template(
+        "rental_agreement.html",
+        tenancy=tenancy,
+        offer=offer,
+        generated_at=datetime.utcnow(),
+        document_ref=f"HB-TEN-{tenancy.id:06d}",
+        back_url=url_for("student.tenancies"),
+    )
+
+
 @student.route("/payments")
 @student_required
 def payment_history():
