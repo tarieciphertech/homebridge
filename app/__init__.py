@@ -34,13 +34,15 @@ def create_app():
     from app.routes.auth import auth
     from app.routes.student import student
     from app.routes.landlord import landlord
-    from app.routes.admin import admin_bp\n    from app.routes.notifications import notifications_bp
+    from app.routes.admin import admin_bp
+    from app.routes.notifications import notifications_bp
 
     app.register_blueprint(public)
     app.register_blueprint(auth)
     app.register_blueprint(student)
     app.register_blueprint(landlord)
-    app.register_blueprint(admin_bp)\n    app.register_blueprint(notifications_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(notifications_bp)
 
     @app.context_processor
     def inject_notification_count():
