@@ -8,7 +8,8 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
-from app.agreement_workflow import get_or_create_agreement, record_review, store_signed_pdf\nfrom app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, PropertyLocalDetails, RentPayment, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
+from app.agreement_workflow import get_or_create_agreement, record_review, store_signed_pdf
+from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, PropertyLocalDetails, RentPayment, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
 
 landlord = Blueprint("landlord", __name__, url_prefix="/landlord")
 
@@ -302,7 +303,8 @@ def rental_agreement(tenancy_id):
     return render_template(
         "rental_agreement.html",
         tenancy=tenancy,
-        offer=offer,\n        agreement=agreement,
+        offer=offer,
+        agreement=agreement,
         generated_at=datetime.utcnow(),
         document_ref=f"HB-TEN-{tenancy.id:06d}",
         back_url=url_for("landlord.tenancies"),
