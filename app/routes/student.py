@@ -134,6 +134,8 @@ def submit_rent_payment(tenancy_id):
         amount=amount,
         currency=currency,
         payment_month=payment_month,
+        period_start=period_start,
+        period_end=period_end,
         reference=request.form.get("reference", "").strip()[:100] or None,
         proof_file=proof_path,
         status="pending",
