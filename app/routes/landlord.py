@@ -1,5 +1,6 @@
 from functools import wraps
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import os
 from uuid import uuid4
 
@@ -182,7 +183,7 @@ def propose_viewing(application_id):
         scheduled_at = datetime.strptime(raw_datetime, "%Y-%m-%dT%H:%M")
     except ValueError:
         scheduled_at = None
-    if not scheduled_at or scheduled_at <= datetime.now():
+    if not scheduled_at or scheduled_at <= datetime.now(ZoneInfo("Africa/Harare")).replace(tzinfo=None):
         flash("Choose a valid future viewing date and time.", "danger")
     elif not meeting_details:
         flash("Add meeting details, such as the property address or a safe meeting point.", "danger")
@@ -199,7 +200,7 @@ def propose_viewing(application_id):
             appointment.meeting_details = meeting_details
             appointment.status = "proposed"
             db.session.commit()
-            flash("Viewing proposal sent to the student.", "success")
+            flash("Viewing proposal saved. The student can respond from My Applications.", "success")
     return redirect(url_for("landlord.application_detail", application_id=application.id))
 
 

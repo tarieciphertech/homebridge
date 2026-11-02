@@ -397,3 +397,16 @@ Repository access should be limited to authorized project contributors. Never sh
 ## Legacy repository
 
 The original `tarieciphertech/server-13-53-116-180-edcar` repository is intentionally left unchanged. `tarieciphertech/homebridge` is the active standalone HomeBridge repository.
+
+
+### Viewing coordination — implementation slice (2 November 2026)
+
+The application review workflow now supports a viewing appointment after a landlord accepts an application:
+
+- A landlord can propose a future viewing date/time and provide a meeting point or instructions.
+- A student can confirm or decline a proposed viewing from **My Applications**.
+- A landlord can cancel a proposed or confirmed viewing and can issue a replacement proposal after a declined/cancelled appointment.
+- Viewing appointments are one-per-application and remain separate from tenancy creation. An accepted application or confirmed viewing does not itself create a tenancy or rental contract.
+- Viewing date/time input is interpreted as Zimbabwe local time (Africa/Harare).
+
+The new ViewingAppointment table is created by the development app's existing db.create_all() startup. Before production, add a managed database migration for this table and test role ownership, date/time handling, and the full landlord/student flow on the Oracle development host.
