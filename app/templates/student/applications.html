@@ -50,6 +50,9 @@
                 {% endif %}
               </td>
             </tr>
+            {% if application.viewing_appointment %}
+            <tr><td colspan="5" class="pt-0"><div class="border rounded p-3"><strong>Viewing:</strong> {{ application.viewing_appointment.status|title }} · {{ application.viewing_appointment.scheduled_at.strftime('%d %b %Y, %H:%M') }}<br><span class="text-muted small">{{ application.viewing_appointment.meeting_details }}</span>{% if application.viewing_appointment.status == 'proposed' and application.status == 'approved' %}<form method="post" action="{{ url_for('student.respond_to_viewing', application_id=application.id) }}" class="d-flex gap-2 mt-2"><button class="btn btn-sm btn-success" name="response" value="confirmed">Confirm viewing</button><button class="btn btn-sm btn-outline-danger" name="response" value="declined">Decline</button></form>{% endif %}</div></td></tr>
+            {% endif %}
             {% if application.message %}
             <tr>
               <td colspan="5" class="pt-0 text-muted small">Message: {{ application.message }}</td>

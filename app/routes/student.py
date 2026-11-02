@@ -1,4 +1,5 @@
 from functools import wraps
+from datetime import datetime
 import os
 from uuid import uuid4
 
@@ -6,7 +7,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
-from app.models import Application, Payment, PlatformSetting, Property, db
+from app.models import Application, Payment, PlatformSetting, Property, ViewingAppointment, db
 
 student = Blueprint("student", __name__, url_prefix="/student")
 
@@ -146,4 +147,21 @@ def withdraw_application(application_id):
     application.status = "withdrawn"
     db.session.commit()
     flash("Application withdrawn.", "success")
+    return redirect(url_for("student.applications"))
+
+
+@student.route("/applications/<int:application_id>/viewing/respond", methods=["POST"])
+@student_required
+def respond_to_viewing(application_id):
+    application = Application.query.filter_by(id=application_id, student_id=current_user.id).first_or_404()
+    appointment = ViewingAppointment.query.filter_by(application_id=application.id).first_or_404()
+    response = request.form.get("response", "").strip().lower()
+    if application.status != "approved" or appointment.status != "proposed":
+        flash("This viewing proposal is no longer awaiting your response.", "warning")
+    elif response not in {"confirmed", "declined"}:
+        flash("Choose confirm or decline.", "danger")
+    else:
+        appointment.status = response
+        db.session.commit()
+        flash("Viewing " + ("confirmed." if response == "confirmed" else "declined."), "success")
     return redirect(url_for("student.applications"))

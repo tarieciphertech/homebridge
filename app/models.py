@@ -119,6 +119,21 @@ class Application(db.Model):
     student = db.relationship("User", foreign_keys=[student_id], backref="applications")
 
 
+class ViewingAppointment(db.Model):
+    """A viewing proposed by a landlord for an approved student application."""
+    id = db.Column(db.Integer, primary_key=True)
+    application_id = db.Column(db.Integer, db.ForeignKey("application.id"), nullable=False, unique=True, index=True)
+    proposed_by_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    scheduled_at = db.Column(db.DateTime, nullable=False)
+    meeting_details = db.Column(db.String(500), nullable=False)
+    status = db.Column(db.String(20), default="proposed", nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    application = db.relationship("Application", backref=db.backref("viewing_appointment", uselist=False))
+    proposed_by = db.relationship("User", foreign_keys=[proposed_by_id])
+
+
 class Tenancy(db.Model):
     """Active or historical student tenancy at a property."""
     id = db.Column(db.Integer, primary_key=True)

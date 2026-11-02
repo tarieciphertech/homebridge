@@ -1,4 +1,5 @@
 from functools import wraps
+from datetime import datetime
 import os
 from uuid import uuid4
 
@@ -6,7 +7,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
-from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, PropertyLocalDetails, RentPayment, db
+from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, PropertyLocalDetails, RentPayment, ViewingAppointment, db
 
 landlord = Blueprint("landlord", __name__, url_prefix="/landlord")
 
@@ -161,6 +162,59 @@ def decide_application(application_id):
         application.status = decision
         db.session.commit()
         flash(f"Application {decision.replace('_', ' ')}.", "success")
+    return redirect(url_for("landlord.application_detail", application_id=application.id))
+
+
+@landlord.route("/applications/<int:application_id>/viewing", methods=["POST"])
+@landlord_required
+def propose_viewing(application_id):
+    application = Application.query.join(Property).filter(
+        Application.id == application_id,
+        Property.landlord_id == current_user.id
+    ).first_or_404()
+    if application.status != "approved":
+        flash("A viewing can only be arranged after accepting the application.", "warning")
+        return redirect(url_for("landlord.application_detail", application_id=application.id))
+
+    raw_datetime = request.form.get("scheduled_at", "").strip()
+    meeting_details = request.form.get("meeting_details", "").strip()
+    try:
+        scheduled_at = datetime.strptime(raw_datetime, "%Y-%m-%dT%H:%M")
+    except ValueError:
+        scheduled_at = None
+    if not scheduled_at or scheduled_at <= datetime.now():
+        flash("Choose a valid future viewing date and time.", "danger")
+    elif not meeting_details:
+        flash("Add meeting details, such as the property address or a safe meeting point.", "danger")
+    else:
+        appointment = ViewingAppointment.query.filter_by(application_id=application.id).first()
+        if appointment and appointment.status == "confirmed":
+            flash("This viewing is already confirmed. Cancel it before proposing another time.", "warning")
+        else:
+            if appointment is None:
+                appointment = ViewingAppointment(application_id=application.id, proposed_by_id=current_user.id)
+                db.session.add(appointment)
+            appointment.proposed_by_id = current_user.id
+            appointment.scheduled_at = scheduled_at
+            appointment.meeting_details = meeting_details
+            appointment.status = "proposed"
+            db.session.commit()
+            flash("Viewing proposal sent to the student.", "success")
+    return redirect(url_for("landlord.application_detail", application_id=application.id))
+
+
+@landlord.route("/applications/<int:application_id>/viewing/cancel", methods=["POST"])
+@landlord_required
+def cancel_viewing(application_id):
+    application = Application.query.join(Property).filter(
+        Application.id == application_id,
+        Property.landlord_id == current_user.id
+    ).first_or_404()
+    appointment = ViewingAppointment.query.filter_by(application_id=application.id).first_or_404()
+    if appointment.status in {"proposed", "confirmed"}:
+        appointment.status = "cancelled"
+        db.session.commit()
+        flash("Viewing cancelled.", "success")
     return redirect(url_for("landlord.application_detail", application_id=application.id))
 
 
