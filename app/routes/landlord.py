@@ -6,7 +6,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
-from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, RentPayment, db
+from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, PropertyLocalDetails, RentPayment, db
 
 landlord = Blueprint("landlord", __name__, url_prefix="/landlord")
 
@@ -81,6 +81,26 @@ def property_form_data(prop):
     prop.amenities = request.form.get("amenities", "").strip()
     prop.house_rules = request.form.get("house_rules", "").strip()
     prop.availability_status = request.form.get("availability_status", "available")
+
+
+def save_local_details(prop):
+    details = prop.local_details or PropertyLocalDetails(property=prop)
+    details.institution_name = request.form.get("institution_name", "").strip() or None
+    details.campus_name = request.form.get("campus_name", "").strip() or None
+    raw_distance = request.form.get("distance_km", "").strip()
+    try:
+        details.distance_km = float(raw_distance) if raw_distance else None
+    except ValueError:
+        details.distance_km = None
+    currency = request.form.get("rent_currency", "USD").strip().upper()
+    details.rent_currency = currency if currency in {"USD", "ZIG", "ZAR"} else "USD"
+    period = request.form.get("rent_period", "month").strip().lower()
+    details.rent_period = period if period in {"month", "week", "term"} else "month"
+    if not details.institution_name and not details.campus_name and not raw_distance:
+        if prop.local_details:
+            db.session.delete(prop.local_details)
+    elif not prop.local_details:
+        db.session.add(details)
 
 
 def add_uploaded_images(prop):
@@ -166,6 +186,7 @@ def new_property():
     if request.method == "POST":
         prop = Property(landlord_id=current_user.id)
         property_form_data(prop)
+        save_local_details(prop)
         if not prop.title or not prop.location or not prop.city or not prop.price:
             flash("Title, location, city and monthly rent are required.", "danger")
             return render_template("landlord/property_form.html", property=prop, mode="create")
@@ -184,6 +205,7 @@ def edit_property(property_id):
     prop = Property.query.filter_by(id=property_id, landlord_id=current_user.id).first_or_404()
     if request.method == "POST":
         property_form_data(prop)
+        save_local_details(prop)
         prop.is_verified = False
         prop.is_published = False
         prop.is_featured = False
