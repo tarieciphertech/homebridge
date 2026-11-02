@@ -84,25 +84,35 @@ def property_form_data(prop):
 
 
 def save_local_details(prop):
-    details = prop.local_details or PropertyLocalDetails(property=prop)
-    details.institution_name = request.form.get("institution_name", "").strip() or None
-    details.campus_name = request.form.get("campus_name", "").strip() or None
+    institution = request.form.get("institution_name", "").strip() or None
+    campus = request.form.get("campus_name", "").strip() or None
     raw_distance = request.form.get("distance_km", "").strip()
     try:
-        details.distance_km = float(raw_distance) if raw_distance else None
+        distance = float(raw_distance) if raw_distance else None
     except ValueError:
-        details.distance_km = None
+        distance = None
+
     currency = request.form.get("rent_currency", "USD").strip().upper()
     currency_map = {"USD": "USD", "ZIG": "ZiG", "ZAR": "ZAR"}
-    details.rent_currency = currency_map.get(currency, "USD")
+    rent_currency = currency_map.get(currency, "USD")
     period = request.form.get("rent_period", "month").strip().lower()
-    details.rent_period = period if period in {"month", "week", "term"} else "month"
-    if (not details.institution_name and not details.campus_name and not raw_distance
-            and details.rent_currency == "USD" and details.rent_period == "month"):
+    rent_period = period if period in {"month", "week", "term"} else "month"
+
+    has_local_details = bool(institution or campus or distance is not None or rent_currency != "USD" or rent_period != "month")
+    if not has_local_details:
         if prop.local_details:
             db.session.delete(prop.local_details)
-    else:
+        return
+
+    details = prop.local_details
+    if details is None:
+        details = PropertyLocalDetails(property=prop)
         db.session.add(details)
+    details.institution_name = institution
+    details.campus_name = campus
+    details.distance_km = distance
+    details.rent_currency = rent_currency
+    details.rent_period = rent_period
 
 
 def add_uploaded_images(prop):
