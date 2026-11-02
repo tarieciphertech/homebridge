@@ -34,7 +34,7 @@ jobs:
           python - <<'PY'
           from sqlalchemy import inspect
           from app import create_app
-          from app.models import RentalAgreement, db
+          from app.models import Notification, RentalAgreement, db
 
           app = create_app()
           rules = {rule.endpoint for rule in app.url_map.iter_rules()}
@@ -48,7 +48,7 @@ jobs:
               "landlord.download_signed_rental_agreement",
               "student.download_signed_rental_agreement",
               "admin_bp.agreements",
-              "admin_bp.download_signed_agreement",
+              "admin_bp.download_signed_agreement",\n              "notifications.index",\n              "notifications.open_notification",\n              "notifications.mark_all_read",
               "landlord.tenancies",
               "student.tenancies",
           }
@@ -57,7 +57,7 @@ jobs:
 
           with app.app_context():
               tables = inspect(db.engine).get_table_names()
-              assert RentalAgreement.__tablename__ in tables, "RentalAgreement table missing"
+              assert RentalAgreement.__tablename__ in tables, "RentalAgreement table missing"\n              assert Notification.__tablename__ in tables, "Notification table missing"
               for template in app.jinja_env.list_templates():
                   app.jinja_env.get_template(template)
 
