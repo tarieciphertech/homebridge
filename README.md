@@ -86,6 +86,9 @@ A HomeBridge tenancy record stores the details accepted through the platform. It
 - Signed-PDF upload after both parties have reviewed the draft.
 - Private signed-document storage outside the public static directory, with role-checked downloads for the landlord, student, and admin.
 - An admin oversight page for agreement status and signed-copy access.
+- A shared in-app notification inbox with unread counts, mark-as-read actions, and account-scoped notification ownership.
+- Notifications for new applications, application decisions and withdrawals, viewing proposals/cancellations/responses, and accepted or declined tenancy offers.
+- Existing property images and platform payment proofs retain their original public-upload storage paths; only signed rental agreements use the separate private document directory.
 - CI checks for Python compilation, Flask startup, agreement routes, database table creation, and Jinja template loading.
 
 Review acknowledgements are **not electronic signatures**. Uploading a signed PDF does not prove that signatures are genuine or that the agreement is legally valid. HomeBridge does not collect rent or verify payment through this workflow. The draft still requires the parties to complete payment due dates, deposit, utilities, notice, inventory, and any other required terms. Legal wording must be reviewed for the applicable jurisdiction before production use.
