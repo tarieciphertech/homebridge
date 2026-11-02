@@ -4,9 +4,9 @@
 <section class="hb-hero">
   <div class="hb-hero-image" role="img" aria-label="Bright, welcoming student accommodation interior"></div>
   <div class="container hb-hero-content">
-    <div class="hb-eyebrow"><span></span> A better place to begin</div>
-    <h1>Find a place<br><em>to call home.</em></h1>
-    <p>Thoughtful student accommodation, clearer choices, and a simpler way to find your next home.</p>
+    <div class="hb-eyebrow"><span></span> ZIMBABWE STUDENT ACCOMMODATION</div>
+    <h1>Find your place<br><em>near your campus.</em></h1>
+    <p>Find rooms, hostels, shared homes and student lodges near universities, colleges and schools across Zimbabwe.</p>
     <a class="btn btn-gold btn-lg" href="#browse">Explore accommodation <i class="fa-solid fa-arrow-right ms-2"></i></a>
     <div class="hb-hero-note"><i class="fa-solid fa-shield-heart me-2"></i>Discover listings reviewed by the HomeBridge team</div>
   </div>
@@ -15,13 +15,14 @@
 
 <section class="container hb-browse-section" id="browse">
   <div class="hb-section-heading">
-    <div><div class="hb-kicker">THE SEARCH STARTS HERE</div><h2>Spaces that fit your next chapter.</h2><p>Browse available homes and compare the details that matter.</p></div>
+    <div><div class="hb-kicker">THE SEARCH STARTS HERE</div><h2>Spaces that fit your next chapter.</h2><p>Search by institution, city, accommodation type and the details that matter to students and families.</p></div>
     <div class="hb-listing-count"><strong>{{ properties|length }}</strong><span>available<br>listing{{ 's' if properties|length != 1 }}</span></div>
   </div>
 
   <div class="hb-filter-panel">
     <form method="get"><div class="row g-3 align-items-end">
       <div class="col-lg-3 col-sm-6"><label class="form-label">I'm looking for</label><select name="property_type" class="form-select"><option value="">Any accommodation</option><option value="house" {% if property_type=='house' %}selected{% endif %}>House</option><option value="apartment" {% if property_type=='apartment' %}selected{% endif %}>Apartment</option><option value="room" {% if property_type=='room' %}selected{% endif %}>Private room</option><option value="hostel" {% if property_type=='hostel' %}selected{% endif %}>Hostel</option></select></div>
+      <div class="col-lg-3 col-sm-6"><label class="form-label">Institution or campus</label><input class="form-control" name="institution" value="{{ institution }}" placeholder="e.g. UZ, NUST, MSU"></div>
       <div class="col-lg-3 col-sm-6"><label class="form-label">Preferred city</label><select name="city" class="form-select"><option value="">All cities</option>{% for c in cities %}<option value="{{c}}" {% if city==c %}selected{% endif %}>{{c}}</option>{% endfor %}</select></div>
       <div class="col-lg-3 col-sm-6"><label class="form-label">Minimum rooms</label><input type="number" min="0" name="rooms" value="{{ rooms }}" class="form-control" placeholder="Any number"></div>
       <div class="col-lg-3 col-sm-6"><button class="btn btn-gold w-100 py-2"><i class="fa-solid fa-magnifying-glass me-2"></i>Find a place</button></div>
@@ -43,7 +44,7 @@
           <div class="hb-property-location"><i class="fa-solid fa-location-dot me-1"></i>{{prop.location}}, {{prop.city}}</div>
           <h3>{{prop.title}}</h3>
           <div class="hb-property-specs">{% if prop.bedrooms %}<span><i class="fa-solid fa-bed"></i>{{prop.bedrooms}} beds</span>{% endif %}{% if prop.bathrooms %}<span><i class="fa-solid fa-bath"></i>{{prop.bathrooms}} baths</span>{% endif %}{% if prop.available_rooms is not none %}<span><i class="fa-solid fa-door-open"></i>{{prop.available_rooms}} available</span>{% endif %}</div>
-          <div class="hb-property-price"><strong>{{prop.price}}</strong><span>/ month</span><i class="fa-solid fa-arrow-up-right ms-auto"></i></div>
+          <div class="hb-property-price"><strong>{{prop.local_details.rent_currency if prop.local_details else "USD"}} {{prop.price}}</strong><span>/ {{prop.local_details.rent_period if prop.local_details else "month"}}</span><i class="fa-solid fa-arrow-up-right ms-auto"></i></div>
         </div>
       </article>
     </a></div>
@@ -51,10 +52,10 @@
   {% else %}
   <div class="hb-empty-state">
     <div class="hb-empty-image"><img src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1000&q=85" alt="Warm, sunlit living room" loading="lazy"></div>
-    <div class="hb-empty-copy"><div class="hb-kicker">A LITTLE ROOM TO GROW</div><h3>Your next home is worth finding.</h3><p>No published properties match these filters just yet. Try another city or property type, or check back as new homes are added.</p><a class="btn btn-outline-dark" href="{{url_for('public.properties')}}">Clear filters</a></div>
+    <div class="hb-empty-copy"><div class="hb-kicker">A LITTLE ROOM TO GROW</div><h3>Your next home is worth finding.</h3><p>No verified accommodation currently matches this search. Try another institution or city, or check back as new Zimbabwean listings are reviewed.</p><a class="btn btn-outline-dark" href="{{url_for('public.properties')}}">Clear filters</a></div>
   </div>
   {% endif %}
 </section>
 
-<section class="hb-trust-band"><div class="container"><div class="row g-4"><div class="col-md-4"><i class="fa-solid fa-house-circle-check"></i><div><strong>Reviewed listings</strong><span>Property submissions go through a review process.</span></div></div><div class="col-md-4"><i class="fa-solid fa-list-check"></i><div><strong>Clear property details</strong><span>Compare rooms, amenities, location and monthly rent.</span></div></div><div class="col-md-4"><i class="fa-solid fa-comments"></i><div><strong>Human support</strong><span>Questions? Send an inquiry and our team can follow up.</span></div></div></div></div></section>
+<section class="hb-trust-band"><div class="container"><div class="row g-4"><div class="col-md-4"><i class="fa-solid fa-house-circle-check"></i><div><strong>Reviewed listings</strong><span>Listings are reviewed before they appear on the marketplace.</span></div></div><div class="col-md-4"><i class="fa-solid fa-list-check"></i><div><strong>Clear property details</strong><span>Compare campus access, room availability, facilities and rent.</span></div></div><div class="col-md-4"><i class="fa-solid fa-comments"></i><div><strong>Human support</strong><span>Questions? Send an inquiry and our team can follow up.</span></div></div></div></div></section>
 {% endblock %}
