@@ -25,7 +25,7 @@ def admin_required(f):
 
 def save_file(file, subfolder):
     filename = secure_filename(file.filename)
-    folder = os.path.join(current_app.config["UPLOAD_FOLDER"], subfolder)
+    folder = os.path.join(current_app.config["PRIVATE_UPLOAD_FOLDER"], subfolder)
     os.makedirs(folder, exist_ok=True)
     file.save(os.path.join(folder, filename))
     return os.path.join(subfolder, filename)
@@ -80,7 +80,7 @@ def download_signed_agreement(agreement_id):
         flash("No signed copy has been uploaded for this agreement.", "info")
         return redirect(url_for("admin_bp.agreements"))
     return send_from_directory(
-        current_app.config["UPLOAD_FOLDER"],
+        current_app.config["PRIVATE_UPLOAD_FOLDER"],
         agreement.signed_document_path,
         as_attachment=True,
         download_name=f"homebridge-signed-agreement-{agreement.tenancy_id}.pdf",
