@@ -32,7 +32,7 @@ jobs:
           ADMIN_PASSWORD: ci-only-test-password
         run: |
           python - <<'PY'
-          from app import create_app
+          from app import create_app\n          from app.models import RentalAgreement
 
           app = create_app()
           rules = {rule.endpoint for rule in app.url_map.iter_rules()}
@@ -43,9 +43,9 @@ jobs:
               "student.tenancies",
           }
           missing = expected - rules
-          assert not missing, f"Missing route endpoints: {sorted(missing)}"
+          assert not missing, f"Missing route endpoints: {sorted(missing)}"\n          assert "rental_agreement" in db_table_names(app), "RentalAgreement table missing"
 
-          with app.app_context():
+          def db_table_names(app):\n              from sqlalchemy import inspect\n              with app.app_context():\n                  return inspect(db.engine).get_table_names()\n\n          with app.app_context():
               for template in app.jinja_env.list_templates():
                   app.jinja_env.get_template(template)
 
