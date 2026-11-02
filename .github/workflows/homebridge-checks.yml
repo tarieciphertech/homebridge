@@ -46,7 +46,7 @@ jobs:
               "landlord.upload_signed_rental_agreement",
               "student.upload_signed_rental_agreement",
               "landlord.download_signed_rental_agreement",
-              "student.download_signed_rental_agreement",
+              "student.download_signed_rental_agreement",\n              "admin_bp.agreements",\n              "admin_bp.download_signed_agreement",
               "landlord.tenancies",
               "student.tenancies",
           }
