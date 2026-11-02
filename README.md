@@ -88,6 +88,8 @@ A HomeBridge tenancy record stores the details accepted through the platform. It
 - An admin oversight page for agreement status and signed-copy access.
 - A shared in-app notification inbox with unread counts, mark-as-read actions, and account-scoped notification ownership.
 - Notifications for new applications, application decisions and withdrawals, viewing proposals/cancellations/responses, and accepted or declined tenancy offers.
+- Student maintenance reporting for active tenancies, including issue title, description and priority.
+- Landlord maintenance management with open/in-progress/resolved/closed states, optional cost tracking, resolution notes, and student notifications.
 - Existing property images and platform payment proofs retain their original public-upload storage paths; only signed rental agreements use the separate private document directory.
 - CI checks for Python compilation, Flask startup, agreement routes, database table creation, and Jinja template loading.
 
