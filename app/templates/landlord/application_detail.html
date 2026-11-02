@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Application Review · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="mb-4">
+    <a href="{{ url_for('landlord.dashboard') }}" class="text-decoration-none">← Back to dashboard</a>
+    <h1 class="mt-3">Application Review</h1>
+    <p class="text-muted mb-0">Review the student's request for {{ application.property.title }}.</p>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card p-4 h-100">
+        <h3>Student details</h3>
+        <dl class="row mt-3">
+          <dt class="col-sm-4">Name</dt><dd class="col-sm-8">{{ application.student.name }}</dd>
+          <dt class="col-sm-4">Email</dt><dd class="col-sm-8"><a href="mailto:{{ application.student.email }}">{{ application.student.email }}</a></dd>
+          <dt class="col-sm-4">Phone</dt><dd class="col-sm-8">{{ application.student.phone or 'Not provided' }}</dd>
+          <dt class="col-sm-4">Submitted</dt><dd class="col-sm-8">{{ application.submitted_at.strftime('%d %b %Y, %H:%M') }}</dd>
+          <dt class="col-sm-4">Status</dt><dd class="col-sm-8"><span class="badge {% if application.status == 'approved' %}bg-success{% elif application.status == 'rejected' %}bg-danger{% elif application.status == 'withdrawn' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">{{ application.status|replace('_',' ')|title }}</span></dd>
+        </dl>
+        <h5 class="mt-3">Student's message</h5>
+        <p class="mb-0">{{ application.message or 'No message was included with this application.' }}</p>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card p-4">
+        <h3>Property</h3>
+        <h5 class="mt-2">{{ application.property.title }}</h5>
+        <p class="text-muted">{{ application.property.location }}, {{ application.property.city }}</p>
+        <p class="mb-1"><strong>Rent:</strong> {{ application.property.local_details.rent_currency if application.property.local_details else 'USD' }} {{ application.property.price }} per {{ application.property.local_details.rent_period if application.property.local_details else 'month' }}</p>
+        <a href="{{ url_for('public.property_detail', property_id=application.property.id) }}" class="btn btn-outline-light mt-3">View public listing</a>
+      </div>
+      <div class="card p-4 mt-4">
+        <h3>Application decision</h3>
+        {% if application.status in ['pending', 'under_review'] %}
+          <p class="text-muted">Update the student when you have reviewed their request.</p>
+          <form method="post" action="{{ url_for('landlord.decide_application', application_id=application.id) }}" class="d-grid gap-2">
+            <button class="btn btn-outline-info" type="submit" name="decision" value="under_review">Mark under review</button>
+            <button class="btn btn-success" type="submit" name="decision" value="approved" onclick="return confirm('Approve this student application?')">Accept application</button>
+            <button class="btn btn-outline-danger" type="submit" name="decision" value="rejected" onclick="return confirm('Reject this student application?')">Reject application</button>
+          </form>
+        {% else %}
+          <p class="mb-0 text-muted">This application is {{ application.status|replace('_',' ') }} and can no longer be changed here.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
