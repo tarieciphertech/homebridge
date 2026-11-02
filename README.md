@@ -410,3 +410,16 @@ The application review workflow now supports a viewing appointment after a landl
 - Viewing date/time input is interpreted as Zimbabwe local time (Africa/Harare).
 
 The new ViewingAppointment table is created by the development app's existing db.create_all() startup. Before production, add a managed database migration for this table and test role ownership, date/time handling, and the full landlord/student flow on the Oracle development host.
+
+
+### Tenancy onboarding — implementation slice (2 November 2026)
+
+- A landlord can send a tenancy offer for an approved application after the student has confirmed the viewing.
+- The offer records rent amount, currency (USD, ZiG or ZAR), period (month, week or term), optional room/unit, start/end dates and terms.
+- The student can accept or decline from **My Applications**. Only acceptance creates a Tenancy record; declining creates no tenancy.
+- Student and landlord tenancy pages are linked from their dashboards.
+- New tenancy records retain the agreed `rent_amount`, `rent_currency` and `rent_period`; legacy `monthly_rent` remains nullable for compatibility and is populated only for monthly offers.
+- An application-linked unique tenancy reference prevents duplicate tenancy creation.
+- This is a HomeBridge record of agreed details, not a signed lease, legal rental contract, rent collection or proof of payment. Parties should complete their separate written rental agreement.
+
+**Database migration required before deployment:** the development app's `db.create_all()` creates the new `TenancyOffer` table but does not add columns to the existing `tenancy` table. Back up the database, then use a reviewed migration to add `application_id`, `rent_amount`, `rent_currency` and `rent_period` to `tenancy`, and make legacy `monthly_rent` nullable. Do not assume a container rebuild performs this migration.
