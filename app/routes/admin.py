@@ -2,13 +2,13 @@ from datetime import date, datetime, timedelta
 from functools import wraps
 import os
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import func
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
-from app.models import Application, Inquiry, Payment, PlatformSetting, Property, PropertyImage, User, db
+from app.models import Application, Inquiry, Payment, PlatformSetting, Property, PropertyImage, RentalAgreement, User, db
 
 admin_bp = Blueprint("admin_bp", __name__, url_prefix="/admin")
 
@@ -61,6 +61,30 @@ def dashboard():
     }
     recent_inquiries = Inquiry.query.order_by(Inquiry.submitted_at.desc()).limit(5).all()
     return render_template("admin/dashboard.html", stats=stats, recent_inquiries=recent_inquiries)
+
+
+@admin_bp.route("/agreements")
+@login_required
+@admin_required
+def agreements():
+    items = RentalAgreement.query.order_by(RentalAgreement.updated_at.desc()).all()
+    return render_template("admin/agreements.html", agreements=items)
+
+
+@admin_bp.route("/agreements/<int:agreement_id>/signed-copy")
+@login_required
+@admin_required
+def download_signed_agreement(agreement_id):
+    agreement = RentalAgreement.query.get_or_404(agreement_id)
+    if not agreement.signed_document_path:
+        flash("No signed copy has been uploaded for this agreement.", "info")
+        return redirect(url_for("admin_bp.agreements"))
+    return send_from_directory(
+        current_app.config["UPLOAD_FOLDER"],
+        agreement.signed_document_path,
+        as_attachment=True,
+        download_name=f"homebridge-signed-agreement-{agreement.tenancy_id}.pdf",
+    )
 
 
 @admin_bp.route("/settings", methods=["GET", "POST"])
