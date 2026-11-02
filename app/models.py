@@ -57,6 +57,7 @@ class Property(db.Model):
 
     landlord = db.relationship("User", back_populates="properties", foreign_keys=[landlord_id])
     images = db.relationship("PropertyImage", back_populates="property", lazy=True, cascade="all, delete-orphan")
+    local_details = db.relationship("PropertyLocalDetails", back_populates="property", uselist=False, cascade="all, delete-orphan")
     applications = db.relationship("Application", back_populates="property", lazy=True, cascade="all, delete-orphan")
     maintenance_requests = db.relationship("MaintenanceRequest", back_populates="property", lazy=True, cascade="all, delete-orphan")
     rent_payments = db.relationship("RentPayment", back_populates="property", lazy=True, cascade="all, delete-orphan")
@@ -64,6 +65,19 @@ class Property(db.Model):
     @property
     def main_image(self):
         return self.images[0].filename if self.images else None
+
+ 
+class PropertyLocalDetails(db.Model):
+    """Zimbabwe-focused education and rent details without altering the core property table."""
+    id = db.Column(db.Integer, primary_key=True)
+    property_id = db.Column(db.Integer, db.ForeignKey("property.id"), nullable=False, unique=True, index=True)
+    institution_name = db.Column(db.String(180))
+    campus_name = db.Column(db.String(180))
+    distance_km = db.Column(db.Numeric(6, 2))
+    rent_currency = db.Column(db.String(10), nullable=False, default="USD")
+    rent_period = db.Column(db.String(20), nullable=False, default="month")
+
+    property = db.relationship("Property", back_populates="local_details")
 
 
 class PropertyImage(db.Model):
