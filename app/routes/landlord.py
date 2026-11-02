@@ -4,11 +4,11 @@ from zoneinfo import ZoneInfo
 import os
 from uuid import uuid4
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
-from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, PropertyLocalDetails, RentPayment, Tenancy, TenancyOffer, ViewingAppointment, db
+from app.agreement_workflow import get_or_create_agreement, record_review, store_signed_pdf\nfrom app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, PropertyLocalDetails, RentPayment, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
 
 landlord = Blueprint("landlord", __name__, url_prefix="/landlord")
 
@@ -295,15 +295,72 @@ def rental_agreement(tenancy_id):
     if not offer:
         flash("The accepted offer details for this tenancy could not be found.", "warning")
         return redirect(url_for("landlord.tenancies"))
+    agreement = get_or_create_agreement(tenancy)
+    if not agreement.prepared_at:
+        agreement.prepared_at = datetime.utcnow()
+        db.session.commit()
+    if not offer:
+        flash("The accepted offer details for this tenancy could not be found.", "warning")
+        return redirect(url_for("landlord.tenancies"))
     return render_template(
         "rental_agreement.html",
         tenancy=tenancy,
-        offer=offer,
+        offer=offer,\n        agreement=agreement,
         generated_at=datetime.utcnow(),
         document_ref=f"HB-TEN-{tenancy.id:06d}",
         back_url=url_for("landlord.tenancies"),
     )
 
+
+
+@landlord.route("/tenancies/<int:tenancy_id>/agreement/review", methods=["POST"])
+@landlord_required
+def review_rental_agreement(tenancy_id):
+    tenancy = Tenancy.query.join(Property).filter(
+        Tenancy.id == tenancy_id,
+        Property.landlord_id == current_user.id
+    ).first_or_404()
+    agreement = RentalAgreement.query.filter_by(tenancy_id=tenancy.id).first_or_404()
+    if not record_review(agreement, "landlord"):
+        flash("The signed agreement copy has already been uploaded; review is locked.", "warning")
+    else:
+        flash("Your agreement review has been recorded.", "success")
+    return redirect(url_for("landlord.rental_agreement", tenancy_id=tenancy.id))
+
+
+@landlord.route("/tenancies/<int:tenancy_id>/agreement/signed-copy", methods=["POST"])
+@landlord_required
+def upload_signed_rental_agreement(tenancy_id):
+    tenancy = Tenancy.query.join(Property).filter(
+        Tenancy.id == tenancy_id,
+        Property.landlord_id == current_user.id
+    ).first_or_404()
+    agreement = RentalAgreement.query.filter_by(tenancy_id=tenancy.id).first_or_404()
+    try:
+        store_signed_pdf(agreement, request.files.get("signed_agreement"), current_user.id)
+    except ValueError as exc:
+        flash(str(exc), "danger")
+        return redirect(url_for("landlord.rental_agreement", tenancy_id=tenancy.id))
+    flash("Signed PDF uploaded. HomeBridge has stored the document; it has not independently verified signatures or legal validity.", "success")
+    return redirect(url_for("landlord.rental_agreement", tenancy_id=tenancy.id))
+
+
+@landlord.route("/tenancies/<int:tenancy_id>/agreement/signed-copy")
+@landlord_required
+def download_signed_rental_agreement(tenancy_id):
+    tenancy = Tenancy.query.join(Property).filter(
+        Tenancy.id == tenancy_id,
+        Property.landlord_id == current_user.id
+    ).first_or_404()
+    agreement = RentalAgreement.query.filter_by(tenancy_id=tenancy.id).first_or_404()
+    if not agreement.signed_document_path:
+        return redirect(url_for("landlord.rental_agreement", tenancy_id=tenancy.id))
+    return send_from_directory(
+        current_app.config["UPLOAD_FOLDER"],
+        agreement.signed_document_path,
+        as_attachment=True,
+        download_name=f"homebridge-signed-agreement-{tenancy.id}.pdf",
+    )
 
 @landlord.route("/payments")
 @landlord_required
