@@ -1,0 +1,53 @@
+name: HomeBridge feature checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - main
+      - "feature/**"
+
+jobs:
+  app-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install application dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Compile Python modules
+        run: python -m compileall -q app
+      - name: Create app and validate routes and templates
+        env:
+          FLASK_ENV: development
+          DATABASE_URL: sqlite:////tmp/homebridge-ci.sqlite
+          SECRET_KEY: ci-only-test-key
+          ADMIN_PASSWORD: ci-only-test-password
+        run: |
+          python - <<'PY'
+          from app import create_app
+
+          app = create_app()
+          rules = {rule.endpoint for rule in app.url_map.iter_rules()}
+          expected = {
+              "landlord.rental_agreement",
+              "student.rental_agreement",
+              "landlord.tenancies",
+              "student.tenancies",
+          }
+          missing = expected - rules
+          assert not missing, f"Missing route endpoints: {sorted(missing)}"
+
+          with app.app_context():
+              for template in app.jinja_env.list_templates():
+                  app.jinja_env.get_template(template)
+
+          print("HomeBridge app startup, agreement routes, and Jinja templates passed.")
+          PY
