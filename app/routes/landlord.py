@@ -284,6 +284,27 @@ def propose_tenancy_offer(application_id):
     flash("Tenancy offer sent. The student can review it under My Applications.", "success")
     return redirect(url_for("landlord.application_detail", application_id=application.id))
 
+@landlord.route("/tenancies/<int:tenancy_id>/agreement")
+@landlord_required
+def rental_agreement(tenancy_id):
+    tenancy = Tenancy.query.join(Property).filter(
+        Tenancy.id == tenancy_id,
+        Property.landlord_id == current_user.id
+    ).first_or_404()
+    offer = TenancyOffer.query.filter_by(application_id=tenancy.application_id, status="accepted").first()
+    if not offer:
+        flash("The accepted offer details for this tenancy could not be found.", "warning")
+        return redirect(url_for("landlord.tenancies"))
+    return render_template(
+        "rental_agreement.html",
+        tenancy=tenancy,
+        offer=offer,
+        generated_at=datetime.utcnow(),
+        document_ref=f"HB-TEN-{tenancy.id:06d}",
+        back_url=url_for("landlord.tenancies"),
+    )
+
+
 @landlord.route("/payments")
 @landlord_required
 def payment_history():
