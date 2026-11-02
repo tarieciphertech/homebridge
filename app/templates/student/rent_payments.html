@@ -23,7 +23,7 @@
   <div class="card p-4"><h2 class="h3 mb-3">Payment history</h2>
     {% for payment in rent_payments %}
     <div class="border-bottom py-3"><div class="d-flex justify-content-between flex-wrap gap-2"><strong>{{ payment.property.title }} · {{ payment.payment_month }}</strong><span class="badge {% if payment.status=='confirmed' %}text-bg-success{% elif payment.status=='rejected' %}text-bg-danger{% else %}text-bg-warning{% endif %}">{{ payment.status|title }}</span></div>
-      <div>{{ payment.currency }} {{ payment.amount }}{% if payment.reference %} · Ref: {{ payment.reference }}{% endif %}</div>
+      <div>{{ payment.currency }} {{ payment.amount }} · Coverage: {{ payment.period_start.strftime('%d %b %Y') if payment.period_start else payment.payment_month }} – {{ payment.period_end.strftime('%d %b %Y') if payment.period_end else 'legacy record' }}{% if payment.reference %} · Ref: {{ payment.reference }}{% endif %}</div>
       <div class="small text-muted">Submitted {{ payment.submitted_at.strftime('%d %b %Y %H:%M') }}{% if payment.reviewed_at %} · Reviewed {{ payment.reviewed_at.strftime('%d %b %Y %H:%M') }}{% endif %}</div>
       {% if payment.proof_file %}<a class="btn btn-sm btn-outline-dark mt-2" href="{{ url_for('student.download_rent_payment_proof', payment_id=payment.id) }}">Download submitted proof</a>{% endif %}
       {% if payment.review_notes %}<p class="small mt-2 mb-0"><strong>Landlord note:</strong> {{ payment.review_notes }}</p>{% endif %}
