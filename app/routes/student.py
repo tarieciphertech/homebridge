@@ -46,7 +46,7 @@ def save_payment_proof(file):
     filename = secure_filename(file.filename)
     if not filename:
         return None
-    folder = os.path.join(current_app.config["UPLOAD_FOLDER"], "proofs")
+    folder = os.path.join(current_app.config["PRIVATE_UPLOAD_FOLDER"], "proofs")
     os.makedirs(folder, exist_ok=True)
     stem, extension = os.path.splitext(filename)
     final_name = f"{stem}-{uuid4().hex[:10]}{extension.lower()}"
@@ -158,7 +158,7 @@ def download_signed_rental_agreement(tenancy_id):
     if not agreement.signed_document_path:
         return redirect(url_for("student.rental_agreement", tenancy_id=tenancy.id))
     return send_from_directory(
-        current_app.config["UPLOAD_FOLDER"],
+        current_app.config["PRIVATE_UPLOAD_FOLDER"],
         agreement.signed_document_path,
         as_attachment=True,
         download_name=f"homebridge-signed-agreement-{tenancy.id}.pdf",
