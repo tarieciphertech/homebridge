@@ -1,24 +1,60 @@
 {% extends 'base.html' %}
-{% block title %}Student Accommodation{% endblock %}
+{% block title %}Find Student Accommodation · HomeBridge{% endblock %}
 {% block content %}
-<div class="container py-5">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div><div class="text-uppercase small text-muted">Lexxi Cipher</div><h1>Student Accommodation</h1><p class="text-muted mb-0">Find available rooms and properties for your next stay.</p></div>
-    <span class="text-muted">{{ properties|length }} listing{{ 's' if properties|length != 1 }}</span>
+<section class="hb-hero">
+  <div class="hb-hero-image" role="img" aria-label="Bright, welcoming student accommodation interior"></div>
+  <div class="container hb-hero-content">
+    <div class="hb-eyebrow"><span></span> A better place to begin</div>
+    <h1>Find a place<br><em>to call home.</em></h1>
+    <p>Thoughtful student accommodation, clearer choices, and a simpler way to find your next home.</p>
+    <a class="btn btn-gold btn-lg" href="#browse">Explore accommodation <i class="fa-solid fa-arrow-right ms-2"></i></a>
+    <div class="hb-hero-note"><i class="fa-solid fa-shield-heart me-2"></i>Discover listings reviewed by the HomeBridge team</div>
   </div>
-  <div class="card p-4 mb-4">
-    <form method="get"><div class="row g-3">
-      <div class="col-md-3"><label class="form-label">Property Type</label><select name="property_type" class="form-select"><option value="">All</option><option value="house">House</option><option value="apartment">Apartment</option><option value="room">Room</option><option value="hostel">Hostel</option></select></div>
-      <div class="col-md-3"><label class="form-label">City</label><select name="city" class="form-select"><option value="">All Cities</option>{% for c in cities %}<option value="{{c}}" {% if city==c %}selected{% endif %}>{{c}}</option>{% endfor %}</select></div>
-      <div class="col-md-3"><label class="form-label">Minimum Rooms</label><input type="number" min="0" name="rooms" value="{{ rooms }}" class="form-control" placeholder="e.g. 1"></div>
-      <div class="col-md-3 d-flex align-items-end"><button class="btn btn-gold w-100">Search Accommodation</button></div>
+  <div class="hb-hero-index"><strong>01</strong><span> / FIND YOUR SPACE</span></div>
+</section>
+
+<section class="container hb-browse-section" id="browse">
+  <div class="hb-section-heading">
+    <div><div class="hb-kicker">THE SEARCH STARTS HERE</div><h2>Spaces that fit your next chapter.</h2><p>Browse available homes and compare the details that matter.</p></div>
+    <div class="hb-listing-count"><strong>{{ properties|length }}</strong><span>available<br>listing{{ 's' if properties|length != 1 }}</span></div>
+  </div>
+
+  <div class="hb-filter-panel">
+    <form method="get"><div class="row g-3 align-items-end">
+      <div class="col-lg-3 col-sm-6"><label class="form-label">I'm looking for</label><select name="property_type" class="form-select"><option value="">Any accommodation</option><option value="house" {% if property_type=='house' %}selected{% endif %}>House</option><option value="apartment" {% if property_type=='apartment' %}selected{% endif %}>Apartment</option><option value="room" {% if property_type=='room' %}selected{% endif %}>Private room</option><option value="hostel" {% if property_type=='hostel' %}selected{% endif %}>Hostel</option></select></div>
+      <div class="col-lg-3 col-sm-6"><label class="form-label">Preferred city</label><select name="city" class="form-select"><option value="">All cities</option>{% for c in cities %}<option value="{{c}}" {% if city==c %}selected{% endif %}>{{c}}</option>{% endfor %}</select></div>
+      <div class="col-lg-3 col-sm-6"><label class="form-label">Minimum rooms</label><input type="number" min="0" name="rooms" value="{{ rooms }}" class="form-control" placeholder="Any number"></div>
+      <div class="col-lg-3 col-sm-6"><button class="btn btn-gold w-100 py-2"><i class="fa-solid fa-magnifying-glass me-2"></i>Find a place</button></div>
     </div></form>
   </div>
-  {% if properties %}<div class="row g-4">{% for prop in properties %}
-    <div class="col-md-6 col-lg-4"><a href="{{url_for('public.property_detail',property_id=prop.id)}}" class="text-decoration-none"><div class="card property-card h-100">
-      <div class="property-img-wrapper">{% if prop.main_image %}<img src="{{url_for('public.uploaded_file',filename=prop.main_image)}}" class="card-img-top">{% else %}<div class="no-image"><i class="fas fa-house"></i></div>{% endif %}{% if prop.is_featured %}<span class="featured-badge">Featured</span>{% endif %}</div>
-      <div class="card-body"><div class="small text-muted text-uppercase">{{prop.property_type}}</div><h5>{{prop.title}}</h5><div class="text-muted small mb-3"><i class="fas fa-location-dot me-1"></i>{{prop.location}}, {{prop.city}}</div><div class="d-flex gap-3 small text-muted">{% if prop.bedrooms %}<span>{{prop.bedrooms}} beds</span>{% endif %}{% if prop.bathrooms %}<span>{{prop.bathrooms}} baths</span>{% endif %}{% if prop.available_rooms is not none %}<span>{{prop.available_rooms}} rooms available</span>{% endif %}</div><div class="mt-3"><strong style="color:var(--gold)">{{prop.price}}</strong> <span class="text-muted small">/ month</span></div></div>
-    </div></a></div>
-  {% endfor %}</div>{% else %}<div class="text-center py-5 text-muted"><i class="fas fa-house-circle-xmark fa-2x mb-3"></i><p>No accommodation matched your search.</p></div>{% endif %}
-</div>
+
+  {% if properties %}
+  <div class="hb-results-bar"><span>AVAILABLE HOMES</span><span>Showing {{ properties|length }} result{{ 's' if properties|length != 1 }}</span></div>
+  <div class="row g-4">{% for prop in properties %}
+    <div class="col-md-6 col-xl-4"><a href="{{url_for('public.property_detail',property_id=prop.id)}}" class="hb-property-link">
+      <article class="hb-property-card">
+        <div class="hb-property-photo">
+          {% if prop.main_image %}<img src="{{url_for('public.uploaded_file',filename=prop.main_image)}}" alt="{{prop.title}}" loading="lazy">
+          {% else %}<img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1000&q=85" alt="Bright furnished accommodation interior" loading="lazy">{% endif %}
+          {% if prop.is_featured %}<span class="hb-featured"><i class="fa-solid fa-star me-1"></i>Featured</span>{% endif %}
+          <span class="hb-photo-type">{{prop.property_type|title}}</span>
+        </div>
+        <div class="hb-property-info">
+          <div class="hb-property-location"><i class="fa-solid fa-location-dot me-1"></i>{{prop.location}}, {{prop.city}}</div>
+          <h3>{{prop.title}}</h3>
+          <div class="hb-property-specs">{% if prop.bedrooms %}<span><i class="fa-solid fa-bed"></i>{{prop.bedrooms}} beds</span>{% endif %}{% if prop.bathrooms %}<span><i class="fa-solid fa-bath"></i>{{prop.bathrooms}} baths</span>{% endif %}{% if prop.available_rooms is not none %}<span><i class="fa-solid fa-door-open"></i>{{prop.available_rooms}} available</span>{% endif %}</div>
+          <div class="hb-property-price"><strong>{{prop.price}}</strong><span>/ month</span><i class="fa-solid fa-arrow-up-right ms-auto"></i></div>
+        </div>
+      </article>
+    </a></div>
+  {% endfor %}</div>
+  {% else %}
+  <div class="hb-empty-state">
+    <div class="hb-empty-image"><img src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1000&q=85" alt="Warm, sunlit living room" loading="lazy"></div>
+    <div class="hb-empty-copy"><div class="hb-kicker">A LITTLE ROOM TO GROW</div><h3>Your next home is worth finding.</h3><p>No published properties match these filters just yet. Try another city or property type, or check back as new homes are added.</p><a class="btn btn-outline-dark" href="{{url_for('public.properties')}}">Clear filters</a></div>
+  </div>
+  {% endif %}
+</section>
+
+<section class="hb-trust-band"><div class="container"><div class="row g-4"><div class="col-md-4"><i class="fa-solid fa-house-circle-check"></i><div><strong>Reviewed listings</strong><span>Property submissions go through a review process.</span></div></div><div class="col-md-4"><i class="fa-solid fa-list-check"></i><div><strong>Clear property details</strong><span>Compare rooms, amenities, location and monthly rent.</span></div></div><div class="col-md-4"><i class="fa-solid fa-comments"></i><div><strong>Human support</strong><span>Questions? Send an inquiry and our team can follow up.</span></div></div></div></div></section>
 {% endblock %}
