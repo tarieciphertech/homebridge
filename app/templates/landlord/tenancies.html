@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Tenancies · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4"><div><h1>Tenancies</h1><p class="text-muted mb-0">Offers and student tenancy records for your properties.</p></div><a href="{{ url_for('landlord.dashboard') }}" class="btn btn-outline-light">Dashboard</a></div>
+  <div class="card p-4 mb-4"><h3>Tenancy offers</h3>
+    {% for offer in offers %}<div class="border-bottom py-3"><div class="d-flex justify-content-between flex-wrap gap-2"><strong>{{ offer.application.property.title }} · {{ offer.application.student.name }}</strong><span class="badge bg-info text-dark">{{ offer.status|title }}</span></div><div>{{ offer.rent_currency }} {{ offer.rent_amount }} per {{ offer.rent_period }} · Starts {{ offer.start_date.strftime('%d %b %Y') }}</div><div class="text-muted small">{{ offer.application.property.location }}, {{ offer.application.property.city }}</div></div>{% else %}<p class="text-muted mb-0">No offers sent yet.</p>{% endfor %}
+  </div>
+  <div class="card p-4"><h3>Tenancy records</h3>
+    {% for tenancy in tenancies %}<div class="border-bottom py-3"><div class="d-flex justify-content-between flex-wrap gap-2"><strong>{{ tenancy.property.title }} · {{ tenancy.student.name }}</strong><span class="badge bg-success">{{ tenancy.status|title }}</span></div><div>{{ tenancy.rent_currency }} {{ tenancy.rent_amount or tenancy.monthly_rent }} per {{ tenancy.rent_period or 'month' }}</div><div class="text-muted small">{{ tenancy.property.location }}, {{ tenancy.property.city }} · {{ tenancy.start_date.strftime('%d %b %Y') }}</div></div>{% else %}<p class="text-muted mb-0">No accepted tenancy records yet.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}
