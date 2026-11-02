@@ -1,5 +1,6 @@
 from functools import wraps
-from datetime import datetime\nfrom calendar import monthrange
+from datetime import datetime
+from calendar import monthrange
 import os
 from uuid import uuid4
 
@@ -8,7 +9,8 @@ from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
 from app.agreement_workflow import get_or_create_agreement, record_review, store_signed_pdf
-from app.notifications import create_in_app_notification\nfrom app.rent_payment_workflow import store_rent_payment_proof
+from app.notifications import create_in_app_notification
+from app.rent_payment_workflow import store_rent_payment_proof
 from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, RentPayment, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
 
 student = Blueprint("student", __name__, url_prefix="/student")
