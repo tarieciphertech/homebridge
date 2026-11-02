@@ -208,6 +208,8 @@ class RentPayment(db.Model):
     amount = db.Column(db.Numeric(12, 2), nullable=False)
     currency = db.Column(db.String(10), default="USD", nullable=False)
     payment_month = db.Column(db.String(7), nullable=False)
+    period_start = db.Column(db.Date)
+    period_end = db.Column(db.Date)
     reference = db.Column(db.String(100))
     proof_file = db.Column(db.String(255))
     status = db.Column(db.String(20), default="pending", nullable=False)
