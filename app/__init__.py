@@ -44,6 +44,8 @@ def create_app():
 
     os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], "properties"), exist_ok=True)
     os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], "proofs"), exist_ok=True)
+    os.makedirs(app.config["PRIVATE_UPLOAD_FOLDER"], mode=0o700, exist_ok=True)
+    os.chmod(app.config["PRIVATE_UPLOAD_FOLDER"], 0o700)
 
     with app.app_context():
         db.create_all()
