@@ -24,11 +24,10 @@ def admin_required(f):
 
 
 def save_file(file, subfolder):
-    filename = secure_filename(file.filename)
-    folder = os.path.join(current_app.config["UPLOAD_FOLDER"], subfolder)
-    os.makedirs(folder, exist_ok=True)
-    file.save(os.path.join(folder, filename))
-    return os.path.join(subfolder, filename)
+    if subfolder != "properties":
+        raise ValueError("Unsupported public upload location.")
+    from app.media_uploads import store_property_image
+    return store_property_image(file)
 
 
 def setting_value(key, default):
@@ -362,9 +361,14 @@ def add_property():
         )
         db.session.add(prop)
         db.session.flush()
-        for img in request.files.getlist("images"):
-            if img and img.filename:
-                db.session.add(PropertyImage(property_id=prop.id, filename=save_file(img, "properties")))
+        try:
+            for img in request.files.getlist("images"):
+                if img and img.filename:
+                    db.session.add(PropertyImage(property_id=prop.id, filename=save_file(img, "properties")))
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), "danger")
+            return render_template("admin/add_property.html")
         db.session.commit()
         flash("Property added and published.", "success")
         return redirect(url_for("admin_bp.properties"))
