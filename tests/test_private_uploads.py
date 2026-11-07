@@ -131,3 +131,35 @@ def test_only_admin_can_download_platform_payment_proof(app):
     response = admin.get(f"/admin/payments/{payment_id}/proof")
     assert response.status_code == 200
     assert response.data.startswith(b"%PDF-")
+
+
+def test_property_image_upload_reencodes_valid_image(app):
+    from PIL import Image
+    from app.media_uploads import store_property_image
+
+    buffer = BytesIO()
+    Image.new("RGB", (2, 2), color=(20, 40, 60)).save(buffer, format="PNG")
+    buffer.seek(0)
+    with app.app_context():
+        app.config["UPLOAD_FOLDER"] = str(Path(app.config["UPLOAD_FOLDER"]))
+        uploaded = FileStorage(stream=buffer, filename="house.png", content_type="image/png")
+        relative = store_property_image(uploaded)
+        saved = Path(app.config["UPLOAD_FOLDER"]) / relative
+        assert relative.startswith("properties/property-")
+        assert saved.is_file()
+        with Image.open(saved) as check:
+            assert check.format == "PNG"
+            assert check.size == (2, 2)
+
+
+def test_property_image_upload_rejects_fake_image(app):
+    from app.media_uploads import store_property_image
+
+    with app.app_context():
+        uploaded = FileStorage(
+            stream=BytesIO(b"<script>alert(1)</script>"),
+            filename="house.png",
+            content_type="image/png",
+        )
+        with pytest.raises(ValueError, match="not a valid image"):
+            store_property_image(uploaded)
