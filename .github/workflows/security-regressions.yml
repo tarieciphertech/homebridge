@@ -32,4 +32,4 @@ jobs:
         env:
           FLASK_ENV: development
           SECRET_KEY: ci-only-test-secret-key
-        run: pytest -q
+        run: python -m pytest -q
