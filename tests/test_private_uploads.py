@@ -27,8 +27,6 @@ def app(tmp_path, monkeypatch):
         PRIVATE_UPLOAD_FOLDER=str(tmp_path / "private"),
     )
     with application.app_context():
-        db.drop_all()
-        db.create_all()
         yield application
         db.session.remove()
         db.drop_all()
