@@ -161,3 +161,23 @@ def test_property_image_upload_rejects_fake_image(app):
         )
         with pytest.raises(ValueError, match="not a valid image"):
             store_property_image(uploaded)
+
+
+def test_production_startup_requires_secret_and_database(monkeypatch):
+    monkeypatch.setenv("FLASK_ENV", "production")
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    from app import create_app
+
+    with pytest.raises(RuntimeError, match="SECRET_KEY, DATABASE_URL"):
+        create_app()
+
+
+def test_production_startup_rejects_short_secret(monkeypatch):
+    monkeypatch.setenv("FLASK_ENV", "production")
+    monkeypatch.setenv("SECRET_KEY", "too-short")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://unused:unused@127.0.0.1/unused")
+    from app import create_app
+
+    with pytest.raises(RuntimeError, match="at least 32 characters"):
+        create_app()
