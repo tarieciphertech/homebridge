@@ -42,15 +42,8 @@ def has_confirmed_service_fee():
 
 
 def save_payment_proof(file):
-    filename = secure_filename(file.filename)
-    if not filename:
-        return None
-    folder = os.path.join(current_app.config["UPLOAD_FOLDER"], "proofs")
-    os.makedirs(folder, exist_ok=True)
-    stem, extension = os.path.splitext(filename)
-    final_name = f"{stem}-{uuid4().hex[:10]}{extension.lower()}"
-    file.save(os.path.join(folder, final_name))
-    return os.path.join("proofs", final_name)
+    from app.private_uploads import store_platform_payment_proof
+    return store_platform_payment_proof(file)
 
 
 @student.route("/dashboard")
@@ -134,7 +127,11 @@ def submit_service_fee():
         return redirect(url_for("student.service_fee"))
 
     proof = request.files.get("proof_file")
-    proof_file = save_payment_proof(proof) if proof and proof.filename else None
+    try:
+        proof_file = save_payment_proof(proof) if proof and proof.filename else None
+    except ValueError as exc:
+        flash(str(exc), "danger")
+        return redirect(url_for("student.service_fee"))
     if not proof_file:
         flash("Please upload proof of payment.", "danger")
         return redirect(url_for("student.service_fee"))
