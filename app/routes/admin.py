@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 from functools import wraps
 import os
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for, send_from_directory
 from flask_login import current_user, login_required
 from sqlalchemy import func
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -24,11 +24,10 @@ def admin_required(f):
 
 
 def save_file(file, subfolder):
-    filename = secure_filename(file.filename)
-    folder = os.path.join(current_app.config["UPLOAD_FOLDER"], subfolder)
-    os.makedirs(folder, exist_ok=True)
-    file.save(os.path.join(folder, filename))
-    return os.path.join(subfolder, filename)
+    if subfolder != "properties":
+        raise ValueError("Unsupported public upload location.")
+    from app.media_uploads import store_property_image
+    return store_property_image(file)
 
 
 def setting_value(key, default):
@@ -219,6 +218,30 @@ def payments():
     )
 
 
+@admin_bp.route("/payments/<int:payment_id>/proof")
+@login_required
+@admin_required
+def payment_proof(payment_id):
+    from pathlib import PurePosixPath
+
+    payment = Payment.query.get_or_404(payment_id)
+    if not payment.proof_file:
+        abort(404)
+    relative = PurePosixPath(payment.proof_file)
+    if relative.is_absolute() or ".." in relative.parts or not relative.parts:
+        abort(404)
+
+    # New receipts live outside the public web root. Older receipts are served
+    # from the legacy proofs directory, but only behind this admin-only route.
+    if relative.parts[0] == "platform-payments":
+        root = current_app.config["PRIVATE_UPLOAD_FOLDER"]
+        return send_from_directory(root, str(relative), as_attachment=False)
+    if relative.parts[0] == "proofs" and len(relative.parts) == 2:
+        root = os.path.join(current_app.config["UPLOAD_FOLDER"], "proofs")
+        return send_from_directory(root, relative.parts[1], as_attachment=False)
+    abort(404)
+
+
 @admin_bp.route("/confirm-payment/<int:payment_id>", methods=["POST"])
 @login_required
 @admin_required
@@ -338,9 +361,14 @@ def add_property():
         )
         db.session.add(prop)
         db.session.flush()
-        for img in request.files.getlist("images"):
-            if img and img.filename:
-                db.session.add(PropertyImage(property_id=prop.id, filename=save_file(img, "properties")))
+        try:
+            for img in request.files.getlist("images"):
+                if img and img.filename:
+                    db.session.add(PropertyImage(property_id=prop.id, filename=save_file(img, "properties")))
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), "danger")
+            return render_template("admin/add_property.html")
         db.session.commit()
         flash("Property added and published.", "success")
         return redirect(url_for("admin_bp.properties"))

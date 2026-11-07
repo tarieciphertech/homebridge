@@ -15,9 +15,22 @@ def create_app():
     except ImportError:
         pass
 
-    env = os.environ.get("FLASK_ENV", "development")
+    env = os.environ.get("FLASK_ENV", "development").strip().lower()
     from config import ProductionConfig, DevelopmentConfig
     app.config.from_object(ProductionConfig if env == "production" else DevelopmentConfig)
+
+    if env == "production":
+        required = {
+            "SECRET_KEY": app.config.get("SECRET_KEY"),
+            "DATABASE_URL": app.config.get("SQLALCHEMY_DATABASE_URI"),
+        }
+        missing = [key for key, value in required.items() if not value]
+        if missing:
+            raise RuntimeError(
+                "Production startup blocked: set " + ", ".join(missing) + " in the environment."
+            )
+        if len(app.config["SECRET_KEY"]) < 32:
+            raise RuntimeError("Production SECRET_KEY must contain at least 32 characters.")
 
     from app.models import User, db
     db.init_app(app)
@@ -28,7 +41,10 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id):
-        return User.query.get(int(user_id))
+        try:
+            return User.query.get(int(user_id))
+        except (TypeError, ValueError):
+            return None
 
     from app.routes.public import public
     from app.routes.auth import auth
@@ -48,6 +64,7 @@ def create_app():
     with app.app_context():
         db.create_all()
         create_default_admin()
+
     return app
 
 
@@ -55,16 +72,36 @@ def create_default_admin():
     from app.models import User, db
     from werkzeug.security import generate_password_hash
 
-    if not User.query.filter_by(role="admin").first():
-        email = os.environ.get("ADMIN_EMAIL", "admin@example.com")
-        admin = User(
-            name=os.environ.get("ADMIN_NAME", "Administrator"),
-            email=email,
-            phone=os.environ.get("ADMIN_PHONE", ""),
-            password=generate_password_hash(os.environ.get("ADMIN_PASSWORD", "change-me")),
-            role="admin",
-            is_approved=True,
+    if User.query.filter_by(role="admin").first():
+        return
+
+    email = os.environ.get("ADMIN_EMAIL", "").strip().lower()
+    password = os.environ.get("ADMIN_PASSWORD", "")
+    name = os.environ.get("ADMIN_NAME", "HomeBridge Administrator").strip()
+
+    if not email or not password:
+        if os.environ.get("FLASK_ENV", "development").strip().lower() == "production":
+            raise RuntimeError(
+                "Production startup blocked: no admin account exists. Set ADMIN_EMAIL and "
+                "a strong ADMIN_PASSWORD for the initial administrator."
+            )
+        print("No admin account created: set ADMIN_EMAIL and ADMIN_PASSWORD to provision one.")
+        return
+
+    if email == "admin@example.com" or len(password) < 16:
+        raise RuntimeError(
+            "Administrator provisioning requires a non-placeholder email and a password "
+            "of at least 16 characters."
         )
-        db.session.add(admin)
-        db.session.commit()
-        print(f"Default admin created: {email}. Change the password immediately.")
+
+    admin = User(
+        name=name,
+        email=email,
+        phone=os.environ.get("ADMIN_PHONE", ""),
+        password=generate_password_hash(password),
+        role="admin",
+        is_approved=True,
+    )
+    db.session.add(admin)
+    db.session.commit()
+    print("Initial HomeBridge administrator account created.")
