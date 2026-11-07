@@ -18,15 +18,15 @@ def store_platform_payment_proof(uploaded_file):
     if not original or suffix not in ALLOWED_PAYMENT_EXTENSIONS:
         raise ValueError("Upload a PDF, PNG, JPG, or WEBP payment receipt.")
 
-    # Verify the file signature instead of trusting the browser-provided MIME type.
+    # Verify file signatures instead of trusting browser-provided MIME metadata.
     stream = uploaded_file.stream
     header = stream.read(16)
     stream.seek(0)
     signatures = {
         ".pdf": header.startswith(b"%PDF-"),
-        ".png": header.startswith(b"\\x89PNG\\r\\n\\x1a\\n"),
-        ".jpg": header.startswith(b"\\xff\\xd8\\xff"),
-        ".jpeg": header.startswith(b"\\xff\\xd8\\xff"),
+        ".png": header.startswith(b"\x89PNG\r\n\x1a\n"),
+        ".jpg": header.startswith(b"\xff\xd8\xff"),
+        ".jpeg": header.startswith(b"\xff\xd8\xff"),
         ".webp": len(header) >= 12 and header[:4] == b"RIFF" and header[8:12] == b"WEBP",
     }
     if not signatures[suffix]:
