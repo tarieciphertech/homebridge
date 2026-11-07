@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 from functools import wraps
 import os
 
-from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, url_for, send_from_directory
 from flask_login import current_user, login_required
 from sqlalchemy import func
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -217,6 +217,30 @@ def payments():
         "admin/payments.html", payments=payments,
         selected_status=status, selected_type=payment_type
     )
+
+
+@admin_bp.route("/payments/<int:payment_id>/proof")
+@login_required
+@admin_required
+def payment_proof(payment_id):
+    from pathlib import PurePosixPath
+
+    payment = Payment.query.get_or_404(payment_id)
+    if not payment.proof_file:
+        abort(404)
+    relative = PurePosixPath(payment.proof_file)
+    if relative.is_absolute() or ".." in relative.parts or not relative.parts:
+        abort(404)
+
+    # New receipts live outside the public web root. Older receipts are served
+    # from the legacy proofs directory, but only behind this admin-only route.
+    if relative.parts[0] == "platform-payments":
+        root = current_app.config["PRIVATE_UPLOAD_FOLDER"]
+        return send_from_directory(root, str(relative), as_attachment=False)
+    if relative.parts[0] == "proofs" and len(relative.parts) == 2:
+        root = os.path.join(current_app.config["UPLOAD_FOLDER"], "proofs")
+        return send_from_directory(root, relative.parts[1], as_attachment=False)
+    abort(404)
 
 
 @admin_bp.route("/confirm-payment/<int:payment_id>", methods=["POST"])
