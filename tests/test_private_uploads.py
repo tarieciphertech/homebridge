@@ -26,14 +26,18 @@ def app(tmp_path, monkeypatch):
     # authorization failures can be distinguished from authentication failures.
     from flask import session
     from flask_login import current_user
+    from app.models import User
 
     @application.get("/__test/whoami")
     def _test_whoami():
+        raw_id = session.get("_user_id")
+        loaded = User.query.get(int(raw_id)) if raw_id else None
         if current_user.is_authenticated:
             identity = f"{current_user.id}:{current_user.role}"
         else:
             identity = "anonymous"
-        return f"session={session.get('_user_id')};identity={identity}"
+        query_identity = f"{loaded.id}:{loaded.role}" if loaded else "missing"
+        return f"session={raw_id};identity={identity};query={query_identity}"
 
     application.config.update(
         TESTING=True,
@@ -146,7 +150,7 @@ def test_only_admin_can_download_platform_payment_proof(app):
         session["_fresh"] = True
     identity = admin.get("/__test/whoami")
     assert identity.status_code == 200
-    assert identity.data.decode() == f"session={admin_id};identity={admin_id}:admin"
+    assert identity.data.decode() == f"session={admin_id};identity={admin_id}:admin;query={admin_id}:admin"
     response = admin.get(f"/admin/payments/{payment_id}/proof")
     assert response.status_code == 200
     assert response.data.startswith(b"%PDF-")
