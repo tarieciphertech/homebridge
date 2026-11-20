@@ -481,7 +481,7 @@ def test_landlord_offer_student_acceptance_creates_one_tenancy(app):
         tenancies = Tenancy.query.filter_by(application_id=application_id).all()
         assert offer.status == "accepted"
         assert len(tenancies) == 1
-        assert tenancies[0].student_id == student.id
+        assert tenancies[0].student_id == student_id
         assert tenancies[0].rent_amount == Decimal("400.00")
         assert tenancies[0].rent_currency == "USD"
         assert Notification.query.filter_by(
