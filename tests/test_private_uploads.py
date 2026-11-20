@@ -1,5 +1,5 @@
 from io import BytesIO
-import os
+import importlib
 from pathlib import Path
 import stat
 
@@ -16,6 +16,9 @@ def app(tmp_path, monkeypatch):
     monkeypatch.setenv("ADMIN_EMAIL", "admin@test.homebridge")
     monkeypatch.setenv("ADMIN_PASSWORD", "test-admin-password-12345")
     monkeypatch.setenv("ADMIN_NAME", "Test Admin")
+
+    import config
+    importlib.reload(config)
 
     from app import create_app
     from app.models import db
