@@ -24,12 +24,16 @@ def app(tmp_path, monkeypatch):
 
     # Expose the resolved Flask-Login identity only inside the test app so
     # authorization failures can be distinguished from authentication failures.
-    from flask_login import current_user, login_required
+    from flask import session
+    from flask_login import current_user
 
     @application.get("/__test/whoami")
-    @login_required
     def _test_whoami():
-        return f"{current_user.id}:{current_user.role}"
+        if current_user.is_authenticated:
+            identity = f"{current_user.id}:{current_user.role}"
+        else:
+            identity = "anonymous"
+        return f"session={session.get('_user_id')};identity={identity}"
 
     application.config.update(
         TESTING=True,
@@ -141,8 +145,8 @@ def test_only_admin_can_download_platform_payment_proof(app):
         session["_user_id"] = str(admin_id)
         session["_fresh"] = True
     identity = admin.get("/__test/whoami")
-    assert identity.status_code == 200, f"admin session was not authenticated: {identity.location}"
-    assert identity.data.decode() == f"{admin_id}:admin"
+    assert identity.status_code == 200
+    assert identity.data.decode() == f"session={admin_id};identity={admin_id}:admin"
     response = admin.get(f"/admin/payments/{payment_id}/proof")
     assert response.status_code == 200
     assert response.data.startswith(b"%PDF-")
