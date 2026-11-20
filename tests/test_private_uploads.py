@@ -237,3 +237,84 @@ def test_all_post_forms_include_csrf_tokens():
 def test_logout_cannot_be_triggered_with_get(app):
     response = app.test_client().get("/logout")
     assert response.status_code == 405
+
+
+
+def test_rent_payment_proof_is_scoped_to_tenant_and_property_landlord(app):
+    from datetime import date
+    from decimal import Decimal
+    from app.models import Property, RentPayment, Tenancy, User, db
+
+    password = "role-test-password-123"
+    with app.app_context():
+        landlord_one = User(name="Landlord One", email="landlord-one@test.homebridge",
+                            password=generate_password_hash(password), role="landlord",
+                            is_approved=True)
+        landlord_two = User(name="Landlord Two", email="landlord-two@test.homebridge",
+                            password=generate_password_hash(password), role="landlord",
+                            is_approved=True)
+        student_one = User(name="Student One", email="student-one@test.homebridge",
+                           password=generate_password_hash(password), role="student",
+                           is_approved=True)
+        student_two = User(name="Student Two", email="student-two@test.homebridge",
+                           password=generate_password_hash(password), role="student",
+                           is_approved=True)
+        db.session.add_all([landlord_one, landlord_two, student_one, student_two])
+        db.session.flush()
+
+        prop = Property(
+            landlord_id=landlord_one.id,
+            title="Test rental",
+            price=Decimal("500.00"),
+            location="Test Street",
+            city="Harare",
+            country="Zimbabwe",
+        )
+        db.session.add(prop)
+        db.session.flush()
+
+        tenancy = Tenancy(
+            property_id=prop.id,
+            student_id=student_one.id,
+            rent_amount=Decimal("500.00"),
+            rent_currency="USD",
+            rent_period="month",
+            start_date=date.today(),
+            status="active",
+        )
+        db.session.add(tenancy)
+        db.session.flush()
+
+        payment = RentPayment(
+            tenancy_id=tenancy.id,
+            property_id=prop.id,
+            student_id=student_one.id,
+            amount=Decimal("500.00"),
+            currency="USD",
+            payment_month=date.today().strftime("%Y-%m"),
+            proof_file="rent-payments/receipt.pdf",
+            status="pending",
+        )
+        db.session.add(payment)
+        db.session.commit()
+        payment_id = payment.id
+
+    private_folder = Path(app.config["PRIVATE_UPLOAD_FOLDER"]) / "rent-payments"
+    private_folder.mkdir(parents=True, exist_ok=True)
+    (private_folder / "receipt.pdf").write_bytes(b"%PDF-1.7 rent receipt")
+
+    def logged_in_client(email):
+        client = app.test_client()
+        response = client.post("/login", data={"email": email, "password": password})
+        assert response.status_code == 302
+        return client
+
+    student_owner = logged_in_client("student-one@test.homebridge")
+    student_other = logged_in_client("student-two@test.homebridge")
+    landlord_owner = logged_in_client("landlord-one@test.homebridge")
+    landlord_other = logged_in_client("landlord-two@test.homebridge")
+
+    assert student_owner.get(f"/student/rent-payments/{payment_id}/proof").status_code == 200
+    assert student_other.get(f"/student/rent-payments/{payment_id}/proof").status_code == 404
+    assert landlord_owner.get(f"/landlord/rent-payments/{payment_id}/proof").status_code == 200
+    assert landlord_other.get(f"/landlord/rent-payments/{payment_id}/proof").status_code == 404
