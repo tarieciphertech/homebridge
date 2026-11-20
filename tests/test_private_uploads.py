@@ -21,6 +21,16 @@ def app(tmp_path, monkeypatch):
     from app.models import db
 
     application = create_app()
+
+    # Expose the resolved Flask-Login identity only inside the test app so
+    # authorization failures can be distinguished from authentication failures.
+    from flask_login import current_user, login_required
+
+    @application.get("/__test/whoami")
+    @login_required
+    def _test_whoami():
+        return f"{current_user.id}:{current_user.role}"
+
     application.config.update(
         TESTING=True,
         UPLOAD_FOLDER=str(tmp_path / "public"),
@@ -130,6 +140,9 @@ def test_only_admin_can_download_platform_payment_proof(app):
     with admin.session_transaction() as session:
         session["_user_id"] = str(admin_id)
         session["_fresh"] = True
+    identity = admin.get("/__test/whoami")
+    assert identity.status_code == 200, f"admin session was not authenticated: {identity.location}"
+    assert identity.data.decode() == f"{admin_id}:admin"
     response = admin.get(f"/admin/payments/{payment_id}/proof")
     assert response.status_code == 200
     assert response.data.startswith(b"%PDF-")
