@@ -429,7 +429,7 @@ This section supersedes older notes above where they conflict. It describes the 
 - First administrator provisioning requires an explicit email and a password of at least 16 characters. No predictable default administrator password is created.
 - Secure session and remember-cookie settings are enabled for production.
 - Production startup no longer calls `db.create_all()`; reviewed SQL migrations are required.
-- New platform-fee receipts are stored outside the public static directory with restricted file permissions and validated file signatures.
+- New platform-fee receipts are stored outside the public static directory with restricted file permissions and validated file signatures. Production requires an explicit absolute private-storage path backed by a persistent Docker volume.
 - Property images are validated and re-encoded before being stored in the public property-image directory.
 - Payment proof downloads are routed through administrator authorization and forced attachment downloads.
 - The public `/uploads` route permits property images only.
