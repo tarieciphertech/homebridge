@@ -1,10 +1,12 @@
 from flask import Flask
 from flask_login import LoginManager
 from flask_mail import Mail
+from flask_wtf.csrf import CSRFProtect
 import os
 
 mail = Mail()
 login_manager = LoginManager()
+csrf = CSRFProtect()
 
 
 def create_app():
@@ -40,6 +42,7 @@ def create_app():
     from app.models import User, db
     db.init_app(app)
     mail.init_app(app)
+    csrf.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
     login_manager.login_message_category = "warning"
