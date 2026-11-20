@@ -85,7 +85,7 @@ try:
             else:
                 print(f"{table}: MISSING")
 except Exception as exc:
-    print("Database inspection failed:", type(exc).__name__, str(exc)[:240])
+    print("Database inspection failed:", type(exc).__name__, "(details suppressed)")
 PY
 else
   status "Container" "$CONTAINER not found"
