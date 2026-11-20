@@ -488,3 +488,12 @@ def test_landlord_offer_student_acceptance_creates_one_tenancy(app):
             user_id=landlord_id,
             event_type="tenancy_offer_accepted",
         ).count() == 1
+
+
+
+def test_release_migration_covers_all_new_production_tables():
+    migration = Path("migrations/20261120_agreements_notifications.sql").read_text(encoding="utf-8")
+    for table in ("property_local_details", "rental_agreement", "notification"):
+        assert f"CREATE TABLE IF NOT EXISTS {table}" in migration
+    for column in ("period_start", "period_end", "reviewed_by_id", "reviewed_at", "review_notes", "cost_currency"):
+        assert column in migration
