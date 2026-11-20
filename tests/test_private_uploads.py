@@ -22,26 +22,9 @@ def app(tmp_path, monkeypatch):
 
     application = create_app()
 
-    # Expose the resolved Flask-Login identity only inside the test app so
-    # authorization failures can be distinguished from authentication failures.
-    from flask import current_app, session
-    from flask_login import current_user
-    from app.models import User
-
-    @application.get("/__test/whoami")
-    def _test_whoami():
-        raw_id = session.get("_user_id")
-        loaded = User.query.get(int(raw_id)) if raw_id else None
-        manager = current_app.login_manager
-        callback = getattr(manager, "_user_callback", None)
-        callback_user = callback(raw_id) if callback and raw_id else None
-        identity = f"{current_user.id}:{current_user.role}" if current_user.is_authenticated else "anonymous"
-        query_identity = f"{loaded.id}:{loaded.role}" if loaded else "missing"
-        callback_identity = f"{callback_user.id}:{callback_user.role}" if callback_user else "missing"
-        return f"session={raw_id};identity={identity};query={query_identity};callback={callback_identity}"
-
     application.config.update(
         TESTING=True,
+        WTF_CSRF_ENABLED=False,
         UPLOAD_FOLDER=str(tmp_path / "public"),
         PRIVATE_UPLOAD_FOLDER=str(tmp_path / "private"),
     )
@@ -140,22 +123,23 @@ def test_only_admin_can_download_platform_payment_proof(app):
         admin_id = User.query.filter_by(email="admin@test.homebridge").one().id
 
     student = app.test_client()
+    student_login = student.post("/login", data={
+        "email": "student@test.homebridge",
+        "password": "student-password-123",
+    })
+    assert student_login.status_code == 302
     with student.session_transaction() as session:
-        session["_user_id"] = str(student_id)
-        session["_fresh"] = True
+        assert session.get("_user_id") == str(student_id)
     assert student.get(f"/admin/payments/{payment_id}/proof").status_code == 302
 
     admin = app.test_client()
-    login_response = admin.post("/login", data={
+    admin_login = admin.post("/login", data={
         "email": "admin@test.homebridge",
         "password": "test-admin-password-12345",
     })
-    assert login_response.status_code == 302
+    assert admin_login.status_code == 302
     with admin.session_transaction() as session:
         assert session.get("_user_id") == str(admin_id)
-    identity = admin.get("/__test/whoami")
-    assert identity.status_code == 200
-    assert identity.data.decode() == f"session={admin_id};identity={admin_id}:admin;query={admin_id}:admin;callback={admin_id}:admin"
     response = admin.get(f"/admin/payments/{payment_id}/proof")
     assert response.status_code == 200
     assert response.data.startswith(b"%PDF-")
