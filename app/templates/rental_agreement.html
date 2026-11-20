@@ -31,11 +31,11 @@
   {% endif %}
 </div>
 {% if not agreement.signed_document_path %}
-  <form method="post" action="{{ url_for(request.blueprint ~ '.review_rental_agreement', tenancy_id=tenancy.id) }}" class="mt-3">
+  <form method="post" action="{{ url_for(request.blueprint ~ '.review_rental_agreement', tenancy_id=tenancy.id) }}" class="mt-3"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button class="btn btn-outline-success" type="submit">I have reviewed this draft</button>
   </form>
   {% if agreement.status == 'ready_for_signing' %}
-    <form method="post" enctype="multipart/form-data" action="{{ url_for(request.blueprint ~ '.upload_signed_rental_agreement', tenancy_id=tenancy.id) }}" class="mt-3">
+    <form method="post" enctype="multipart/form-data" action="{{ url_for(request.blueprint ~ '.upload_signed_rental_agreement', tenancy_id=tenancy.id) }}" class="mt-3"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label class="form-label" for="signed_agreement">Upload the separately signed agreement (PDF)</label>
       <input class="form-control" id="signed_agreement" name="signed_agreement" type="file" accept="application/pdf,.pdf" required>
       <button class="btn btn-success mt-2" type="submit">Upload signed PDF</button>
