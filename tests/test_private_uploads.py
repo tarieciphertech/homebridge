@@ -114,18 +114,22 @@ def test_only_admin_can_download_platform_payment_proof(app):
     anonymous = app.test_client()
     assert anonymous.get(f"/admin/payments/{payment_id}/proof").status_code == 302
 
+    from app.models import User
+
+    with app.app_context():
+        student_id = User.query.filter_by(email="student@test.homebridge").one().id
+        admin_id = User.query.filter_by(email="admin@test.homebridge").one().id
+
     student = app.test_client()
-    student.post("/login", data={
-        "email": "student@test.homebridge",
-        "password": "student-password-123",
-    }, follow_redirects=True)
+    with student.session_transaction() as session:
+        session["_user_id"] = str(student_id)
+        session["_fresh"] = True
     assert student.get(f"/admin/payments/{payment_id}/proof").status_code == 302
 
     admin = app.test_client()
-    admin.post("/login", data={
-        "email": "admin@test.homebridge",
-        "password": "test-admin-password-12345",
-    }, follow_redirects=True)
+    with admin.session_transaction() as session:
+        session["_user_id"] = str(admin_id)
+        session["_fresh"] = True
     response = admin.get(f"/admin/payments/{payment_id}/proof")
     assert response.status_code == 200
     assert response.data.startswith(b"%PDF-")
