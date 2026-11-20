@@ -11,7 +11,7 @@ The marketplace should organize discovery around:
 - Transparent rent amounts, currencies and payment periods.
 - Clear location, campus distance, room availability, amenities, house rules and listing verification.
 
-The first implementation slice adds institution/campus search and landlord listing fields for nearby education institutions, campus/area, distance in kilometres, rent currency (USD, ZiG or ZAR), and rent period (month, week or term). These fields are stored in a separate PropertyLocalDetails table so the existing property table and existing records do not need destructive changes. The app's existing db.create_all() startup creates this new table automatically.
+The first implementation slice adds institution/campus search and landlord listing fields for nearby education institutions, campus/area, distance in kilometres, rent currency (USD, ZiG or ZAR), and rent period (month, week or term). These fields are stored in a separate PropertyLocalDetails table so the existing property table and existing records do not need destructive changes. Development and CI create this table through SQLAlchemy; production creates it through the reviewed SQL migration.
 
 This is a Zimbabwe-first product direction, not a claim that all Zimbabwean institutions or accommodation inventory have already been onboarded. Do not invent listings or imply a property is verified unless an admin has completed the review process.
 
@@ -78,7 +78,7 @@ A HomeBridge tenancy record stores the details accepted through the platform. It
 
 ### Next priorities — current work in progress
 
-**Rental agreement lifecycle is under development on `feature/agreement-lifecycle`; it is not merged into `main` or deployed to Oracle.** The current development slice adds:
+**Rental agreement lifecycle is integrated on `integration/client-ready-release` and proposed in PR #5; it is not merged into `main` or deployed to Oracle.** The current development slice adds:
 - Role-protected agreement preview routes for the landlord who owns the tenancy and the student attached to it.
 - A per-tenancy `RentalAgreement` workflow record.
 - Separate landlord and student review acknowledgements and timestamps.
@@ -95,9 +95,9 @@ A HomeBridge tenancy record stores the details accepted through the platform. It
 - Landlords can review rent submissions as pending, confirmed or rejected, add notes, and notify the student of the outcome.
 - Rent payment proofs are stored privately and downloaded only by the relevant tenant or the owning landlord. These rent records remain separate from HomeBridge platform-fee revenue.
 - Rent submissions capture a coverage date range, prevent overlapping pending/confirmed periods for the same tenancy, and enforce the tenancy's agreed currency.
-- PostgreSQL schema additions for existing maintenance/rent-payment tables are documented in `migrations/20261102_tenancy_workflows.sql`; take a backup and apply this migration before deploying the branch. New `RentalAgreement` and `Notification` tables are created by the existing SQLAlchemy startup initialization.
-- Existing property images and platform payment proofs retain their original public-upload storage paths; only signed rental agreements use the separate private document directory.
-- CI checks for Python compilation, Flask startup, agreement routes, database table creation, and Jinja template loading.
+- PostgreSQL schema additions are documented in `migrations/20261102_tenancy_workflows.sql` and `migrations/20261120_agreements_notifications.sql`; take a verified backup and apply both migrations in order before deploying the branch. The second migration creates `PropertyLocalDetails`, `RentalAgreement` and `Notification` tables and adds the release-specific rent/maintenance columns. Production startup does not call `db.create_all()`.
+- Property photographs remain in the public property-image directory after validation and re-encoding. New platform payment receipts, rent receipts and signed rental agreements use private storage. Historical platform payment receipts may remain in the legacy proofs directory until migrated; the Flask public and static routes block access, but Nginx aliases must be checked before launch.
+- CI checks Python compilation, private-file and CSRF security regressions, application startup, agreement routes, database schema and Jinja template loading.
 
 Review acknowledgements are **not electronic signatures**. Uploading a signed PDF does not prove that signatures are genuine or that the agreement is legally valid. HomeBridge does not collect rent or verify payment through this workflow. The draft still requires the parties to complete payment due dates, deposit, utilities, notice, inventory, and any other required terms. Legal wording must be reviewed for the applicable jurisdiction before production use.
 
