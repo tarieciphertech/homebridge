@@ -410,7 +410,7 @@ def inquiries():
     return render_template("admin/inquiries.html", inquiries=Inquiry.query.order_by(Inquiry.submitted_at.desc()).all())
 
 
-@admin_bp.route("/handle-inquiry/<int:inquiry_id>")
+@admin_bp.route("/handle-inquiry/<int:inquiry_id>", methods=["POST"])
 @login_required
 @admin_required
 def handle_inquiry(inquiry_id):
