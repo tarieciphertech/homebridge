@@ -419,7 +419,7 @@ This section supersedes older notes above where they conflict. It describes the 
 - Active integration branch: `integration/client-ready-release`.
 - Main includes the rental-agreement and operations work merged through PR #5; this branch carries follow-up hardening and test improvements in PR #6.
 - The branch combines the agreement, notification, maintenance and rent-payment work with production hardening and client launch documentation.
-- Latest recorded automated security regression run on the follow-up branch: **20 passed**.
+- Latest recorded automated security regression run on main: **21 passed**.
 - Latest recorded application feature check: **passed**, including startup, expected routes, database schema checks and Jinja template compilation.
 - The core integration is now in `main`; the integration branch contains the follow-up changes proposed in PR #6. No Oracle deployment has been performed for either release.
 
@@ -443,6 +443,7 @@ This section supersedes older notes above where they conflict. It describes the 
 - `migrations/20261120_agreements_notifications.sql` — agreement and notification tables, plus idempotent rent-payment and maintenance columns.
 - `migrations/README.md` — required migration order and production precautions.
 - `docs/DEPLOYMENT.md` — environment, backup, migration, private-storage and release checks.
+- `scripts/homebridge_release_preflight.sh` — read-only Oracle host preflight; it reports deployment state without pulling code, running migrations, restarting services or printing secret values.
 - `.env.example` — safe configuration template; replace every placeholder and never commit the real `.env`.
 
 ### Important legacy-file warning
