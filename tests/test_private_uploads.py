@@ -199,3 +199,34 @@ def test_production_startup_rejects_short_secret(monkeypatch):
 
     with pytest.raises(RuntimeError, match="at least 32 characters"):
         create_app()
+
+
+
+def test_csrf_rejects_public_post_without_token(app):
+    app.config["WTF_CSRF_ENABLED"] = True
+    response = app.test_client().post("/inquire", data={
+        "visitor_name": "Test Visitor",
+        "visitor_email": "visitor@example.test",
+        "message": "Please contact me.",
+    })
+    assert response.status_code == 400
+
+
+def test_all_post_forms_include_csrf_tokens():
+    import re
+
+    for template in Path("app/templates").rglob("*.html"):
+        content = template.read_text(encoding="utf-8")
+        for match in re.finditer(r"<form\\b[^>]*>", content, flags=re.IGNORECASE | re.DOTALL):
+            opening_tag = match.group(0)
+            if not re.search(r"\\bmethod\\s*=\\s*[\"']?post\\b", opening_tag, flags=re.IGNORECASE):
+                continue
+            closing = content.find("</form>", match.end())
+            assert closing >= 0, f"Unclosed form in {template}"
+            body = content[match.end():closing]
+            assert 'name="csrf_token"' in body, f"Missing CSRF token in {template}"
+
+
+def test_logout_cannot_be_triggered_with_get(app):
+    response = app.test_client().get("/logout")
+    assert response.status_code == 405
