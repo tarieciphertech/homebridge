@@ -76,9 +76,9 @@ Keep these backups until the migration and tenancy workflows have had sufficient
 
 A HomeBridge tenancy record stores the details accepted through the platform. It is **not** a signed lease, legal rental contract, proof of rent payment, or confirmation that rent has been collected. The landlord and student must still complete their separate written rental agreement and handle rent payments through their agreed process.
 
-### Next priorities — current work in progress
+### Rental agreement and operations lifecycle — integrated in main
 
-**Rental agreement lifecycle is integrated on `integration/client-ready-release` and proposed in PR #5; it is not merged into `main` or deployed to Oracle.** The current development slice adds:
+**The rental agreement and operations lifecycle was merged into `main` through PR #5 on 20 November 2026. It has not yet been deployed to the Oracle development environment.** The integrated release adds:
 - Role-protected agreement preview routes for the landlord who owns the tenancy and the student attached to it.
 - A per-tenancy `RentalAgreement` workflow record.
 - Separate landlord and student review acknowledgements and timestamps.
@@ -190,7 +190,7 @@ The development environment is intentionally separate from the public production
 - View property photos, amenities, rules and availability.
 - Submit and track accommodation applications.
 - Withdraw pending applications.
-- Respond to tenancy offers, view tenancy details, and prepare a printable draft rental agreement for an accepted tenancy (feature branch; not yet deployed).
+- Respond to tenancy offers, view tenancy details, and review or upload the signed copy of a rental agreement for an accepted tenancy (integrated in `main`; not yet deployed).
 - Submit student service-fee payment proof when a fee is configured.
 
 ### Landlords
@@ -203,7 +203,7 @@ The development environment is intentionally separate from the public production
 - Track verification and publication status.
 - Review applications and coordinate viewings.
 - Send tenancy offers for approved applications after viewing confirmation.
-- View tenancy details and prepare a printable draft rental agreement for an accepted tenancy (feature branch; not yet deployed).
+- View tenancy details and review or upload the signed copy of a rental agreement for an accepted tenancy (integrated in `main`; not yet deployed).
 - Submit listing-fee payment proof when a listing fee is configured.
 
 ### Admins
@@ -261,7 +261,7 @@ The development environment is intentionally separate from the public production
 - Students can accept or decline offers from **My Applications**.
 - Accepting creates a tenancy record; declining does not.
 - Student and landlord tenancy pages are linked from their dashboards.
-- A printable draft rental agreement preview is available in the feature branch to both parties through role-checked routes; it is not yet merged/deployed and does not capture electronic signatures.
+- A printable draft rental agreement preview is available to both parties through role-checked routes in the integrated `main` release; it is not yet deployed and does not capture electronic signatures.
 - New tenancy records retain `rent_amount`, `rent_currency` and `rent_period`; legacy `monthly_rent` remains nullable for compatibility and is populated only for monthly offers.
 - An application-linked unique tenancy reference prevents duplicate tenancy creation.
 
@@ -417,11 +417,11 @@ This section supersedes older notes above where they conflict. It describes the 
 ### Current branch and verification
 
 - Active integration branch: `integration/client-ready-release`.
-- Base: the rental-agreement and operations work from `feature/agreement-lifecycle`.
+- Main includes the rental-agreement and operations work merged through PR #5; this branch carries follow-up hardening and test improvements in PR #6.
 - The branch combines the agreement, notification, maintenance and rent-payment work with production hardening and client launch documentation.
-- Latest recorded automated security regression run: **15 passed**.
+- Latest recorded automated security regression run on the follow-up branch: **20 passed**.
 - Latest recorded application feature check: **passed**, including startup, expected routes, database schema checks and Jinja template compilation.
-- The integration branch remains separate from `main`; no Oracle deployment has been performed for these changes.
+- The core integration is now in `main`; the integration branch contains the follow-up changes proposed in PR #6. No Oracle deployment has been performed for either release.
 
 ### Security and privacy changes integrated
 
