@@ -21,6 +21,11 @@ def create_app():
     from config import ProductionConfig, DevelopmentConfig
     app.config.from_object(ProductionConfig if env == "production" else DevelopmentConfig)
 
+    static_root = os.path.realpath(app.static_folder)
+    private_root = os.path.realpath(app.config["PRIVATE_UPLOAD_FOLDER"])
+    if os.path.commonpath([static_root, private_root]) == static_root:
+        raise RuntimeError("PRIVATE_UPLOAD_FOLDER must be outside the public static directory.")
+
     if env == "production":
         secret_key = os.environ.get("SECRET_KEY", "").strip()
         database_url = os.environ.get("DATABASE_URL", "").strip()
