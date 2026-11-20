@@ -217,9 +217,9 @@ def test_all_post_forms_include_csrf_tokens():
 
     for template in Path("app/templates").rglob("*.html"):
         content = template.read_text(encoding="utf-8")
-        for match in re.finditer(r"<form\\b[^>]*>", content, flags=re.IGNORECASE | re.DOTALL):
+        for match in re.finditer(r"<form\b[^>]*>", content, flags=re.IGNORECASE | re.DOTALL):
             opening_tag = match.group(0)
-            if not re.search(r"\\bmethod\\s*=\\s*[\"']?post\\b", opening_tag, flags=re.IGNORECASE):
+            if not re.search(r"\bmethod\s*=\s*[\"']?post\b", opening_tag, flags=re.IGNORECASE):
                 continue
             closing = content.find("</form>", match.end())
             assert closing >= 0, f"Unclosed form in {template}"
