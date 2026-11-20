@@ -4,7 +4,7 @@
 <div class="container py-5">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
     <div><p class="hb-kicker mb-2">Your account</p><h1 class="mb-1">Notifications</h1><p class="text-muted mb-0">Updates about your applications, viewings and tenancy offers.</p></div>
-    {% if unread_count %}<form method="post" action="{{ url_for('notifications.mark_all_read') }}"><button class="btn btn-outline-dark" type="submit">Mark all as read</button></form>{% endif %}
+    {% if unread_count %}<form method="post" action="{{ url_for('notifications.mark_all_read') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-outline-dark" type="submit">Mark all as read</button></form>{% endif %}
   </div>
   <div class="card p-3 p-md-4">
     {% for item in notifications %}
@@ -16,7 +16,7 @@
           <small class="text-muted">{{ item.created_at.strftime('%d %b %Y · %H:%M UTC') }}</small>
         </div>
         <div class="align-self-center">
-          {% if item.target_url %}<form method="post" action="{{ url_for('notifications.open_notification', notification_id=item.id) }}"><button class="btn btn-sm btn-outline-dark" type="submit">Open</button></form>{% elif not item.is_read %}<form method="post" action="{{ url_for('notifications.open_notification', notification_id=item.id) }}"><button class="btn btn-sm btn-outline-dark" type="submit">Read</button></form>{% endif %}
+          {% if item.target_url %}<form method="post" action="{{ url_for('notifications.open_notification', notification_id=item.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-dark" type="submit">Open</button></form>{% elif not item.is_read %}<form method="post" action="{{ url_for('notifications.open_notification', notification_id=item.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-dark" type="submit">Read</button></form>{% endif %}
         </div>
       </div>
     {% else %}
