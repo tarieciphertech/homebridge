@@ -362,3 +362,128 @@ def test_private_upload_folder_cannot_be_inside_public_static(monkeypatch, tmp_p
 
     with pytest.raises(RuntimeError, match="outside the public static directory"):
         create_app()
+
+
+
+def test_landlord_offer_student_acceptance_creates_one_tenancy(app):
+    from datetime import date, datetime, timedelta
+    from decimal import Decimal
+    from app.models import (
+        Application, Notification, Property, Tenancy, TenancyOffer,
+        User, ViewingAppointment, db,
+    )
+
+    password = "tenancy-flow-password-123"
+    with app.app_context():
+        landlord = User(
+            name="Offer Landlord",
+            email="offer-landlord@test.homebridge",
+            password=generate_password_hash(password),
+            role="landlord",
+            is_approved=True,
+        )
+        student = User(
+            name="Offer Student",
+            email="offer-student@test.homebridge",
+            password=generate_password_hash(password),
+            role="student",
+            is_approved=True,
+        )
+        db.session.add_all([landlord, student])
+        db.session.flush()
+
+        prop = Property(
+            landlord_id=landlord.id,
+            title="Student room near campus",
+            price=Decimal("400.00"),
+            location="Campus Road",
+            city="Harare",
+            country="Zimbabwe",
+            is_verified=True,
+            is_published=True,
+        )
+        db.session.add(prop)
+        db.session.flush()
+
+        application = Application(
+            property_id=prop.id,
+            student_id=student.id,
+            status="approved",
+            message="I am interested in this room.",
+        )
+        db.session.add(application)
+        db.session.flush()
+
+        viewing = ViewingAppointment(
+            application_id=application.id,
+            proposed_by_id=landlord.id,
+            scheduled_at=datetime.now() + timedelta(days=1),
+            meeting_details="Meet at the property entrance.",
+            status="confirmed",
+        )
+        db.session.add(viewing)
+        db.session.commit()
+        application_id = application.id
+        landlord_id = landlord.id
+
+    landlord_client = app.test_client()
+    assert landlord_client.post("/login", data={
+        "email": "offer-landlord@test.homebridge",
+        "password": password,
+    }).status_code == 302
+
+    start = date.today() + timedelta(days=1)
+    end = start + timedelta(days=180)
+    offer_response = landlord_client.post(
+        f"/landlord/applications/{application_id}/tenancy-offer",
+        data={
+            "rent_amount": "400.00",
+            "rent_currency": "USD",
+            "rent_period": "month",
+            "room_label": "Room A",
+            "start_date": start.isoformat(),
+            "end_date": end.isoformat(),
+            "terms": "Rent due monthly.",
+        },
+    )
+    assert offer_response.status_code == 302
+
+    with app.app_context():
+        offer = TenancyOffer.query.filter_by(application_id=application_id).one()
+        assert offer.status == "proposed"
+        offer_id = offer.id
+        assert Notification.query.filter_by(
+            user_id=student.id,
+            event_type="tenancy_offer",
+        ).count() == 1
+
+    student_client = app.test_client()
+    assert student_client.post("/login", data={
+        "email": "offer-student@test.homebridge",
+        "password": password,
+    }).status_code == 302
+
+    accept_response = student_client.post(
+        f"/student/applications/{application_id}/tenancy-offer/respond",
+        data={"response": "accepted"},
+    )
+    assert accept_response.status_code == 302
+
+    # Replaying acceptance must not create a second tenancy.
+    student_client.post(
+        f"/student/applications/{application_id}/tenancy-offer/respond",
+        data={"response": "accepted"},
+    )
+
+    with app.app_context():
+        offer = db.session.get(TenancyOffer, offer_id)
+        tenancies = Tenancy.query.filter_by(application_id=application_id).all()
+        assert offer.status == "accepted"
+        assert len(tenancies) == 1
+        assert tenancies[0].student_id == student.id
+        assert tenancies[0].rent_amount == Decimal("400.00")
+        assert tenancies[0].rent_currency == "USD"
+        assert Notification.query.filter_by(
+            user_id=landlord_id,
+            event_type="tenancy_offer_accepted",
+        ).count() == 1
