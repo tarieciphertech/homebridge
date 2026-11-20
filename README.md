@@ -419,7 +419,7 @@ This section supersedes older notes above where they conflict. It describes the 
 - Active integration branch: `integration/client-ready-release`.
 - Base: the rental-agreement and operations work from `feature/agreement-lifecycle`.
 - The branch combines the agreement, notification, maintenance and rent-payment work with production hardening and client launch documentation.
-- Latest recorded automated security regression run: **12 passed**.
+- Latest recorded automated security regression run: **15 passed**.
 - Latest recorded application feature check: **passed**, including startup, expected routes, database schema checks and Jinja template compilation.
 - The integration branch remains separate from `main`; no Oracle deployment has been performed for these changes.
 
