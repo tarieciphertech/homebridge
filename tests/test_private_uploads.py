@@ -129,6 +129,8 @@ def test_only_admin_can_download_platform_payment_proof(app):
         admin_user = User.query.filter_by(email="admin@test.homebridge").one()
         admin_id = admin_user.id
         assert check_password_hash(admin_user.password, "test-admin-password-12345")
+        assert admin_user.is_active is True
+        assert admin_user.is_active_account is True
 
     student = app.test_client()
     student_login = student.post("/login", data={
