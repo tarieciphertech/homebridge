@@ -403,3 +403,59 @@ The team has agreed to maintain weekly progress updates. Keep this README curren
 ## Legacy repository
 
 The original `tarieciphertech/server-13-53-116-180-edcar` repository is intentionally left unchanged. `tarieciphertech/homebridge` is the active standalone HomeBridge repository.
+
+
+---
+
+## Current integration handover — 20 November 2026
+
+This section supersedes older notes above where they conflict. It describes the current integration branch; it is **not** a production deployment confirmation.
+
+### Current branch and verification
+
+- Active integration branch: `integration/client-ready-release`.
+- Base: the rental-agreement and operations work from `feature/agreement-lifecycle`.
+- The branch combines the agreement, notification, maintenance and rent-payment work with production hardening and client launch documentation.
+- Latest recorded automated security regression run: **12 passed**.
+- Latest recorded application feature check: **passed**, including startup, expected routes, database schema checks and Jinja template compilation.
+- The integration branch remains separate from `main`; no Oracle deployment has been performed for these changes.
+
+### Security and privacy changes integrated
+
+- Production startup requires an explicitly configured database URL and a random secret of at least 32 characters.
+- First administrator provisioning requires an explicit email and a password of at least 16 characters. No predictable default administrator password is created.
+- Secure session and remember-cookie settings are enabled for production.
+- Production startup no longer calls `db.create_all()`; reviewed SQL migrations are required.
+- New platform-fee receipts are stored outside the public static directory with restricted file permissions and validated file signatures.
+- Property images are validated and re-encoded before being stored in the public property-image directory.
+- Payment proof downloads are routed through administrator authorization and forced attachment downloads.
+- The public `/uploads` route permits property images only.
+- The Flask static route also blocks non-property uploads under `/static/uploads`, preventing the old proof path from bypassing the public upload restriction.
+- Application-wide CSRF protection is enabled. POST forms include CSRF tokens; logout and inquiry completion use POST.
+- Rent-payment receipt downloads are scoped to the tenant and the landlord who owns the property.
+
+### Database migrations
+
+- `migrations/20261102_tenancy_workflows.sql` — tenancy and rent/maintenance workflow additions.
+- `migrations/20261120_agreements_notifications.sql` — agreement and notification tables, plus idempotent rent-payment and maintenance columns.
+- `migrations/README.md` — required migration order and production precautions.
+- `docs/DEPLOYMENT.md` — environment, backup, migration, private-storage and release checks.
+- `.env.example` — safe configuration template; replace every placeholder and never commit the real `.env`.
+
+### Important legacy-file warning
+
+Historical payment proofs may still exist physically under the old `app/static/uploads/proofs` directory. The Flask application now blocks access through its public routes and static endpoint, but an Nginx static alias could serve those files without reaching Flask. Before production, inspect the actual Nginx configuration, move legacy receipts into private storage, update their database paths, and test direct URL access.
+
+### Remaining go-live work
+
+1. Complete role and record-ownership regression tests for every private resource and business action.
+2. Verify the latest security and feature workflows on the final release commit.
+3. Review all route permissions, payment state transitions, tenancy edge cases and file handling.
+4. Rehearse the migrations and backup restoration against a restored database copy.
+5. Inspect the live Oracle Compose and Nginx configuration without disturbing other hosted services.
+6. Migrate legacy payment receipts into private storage.
+7. Run full browser-based journeys for students, landlords and administrators.
+8. Obtain business approval for fee amounts, payment instructions, terms, privacy and support procedures.
+9. Deploy only after the release gate in `docs/DEPLOYMENT.md` is satisfied.
+
+The platform is still in development. Passing CI is evidence that the tested code paths pass; it is not proof that the live Oracle deployment, Nginx configuration, production database, business processes or every browser journey have been verified.
