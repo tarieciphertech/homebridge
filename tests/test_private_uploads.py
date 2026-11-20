@@ -122,9 +122,13 @@ def test_only_admin_can_download_platform_payment_proof(app):
 
     from app.models import User
 
+    from werkzeug.security import check_password_hash
+
     with app.app_context():
         student_id = User.query.filter_by(email="student@test.homebridge").one().id
-        admin_id = User.query.filter_by(email="admin@test.homebridge").one().id
+        admin_user = User.query.filter_by(email="admin@test.homebridge").one()
+        admin_id = admin_user.id
+        assert check_password_hash(admin_user.password, "test-admin-password-12345")
 
     student = app.test_client()
     student_login = student.post("/login", data={
@@ -141,7 +145,8 @@ def test_only_admin_can_download_platform_payment_proof(app):
         "email": "admin@test.homebridge",
         "password": "test-admin-password-12345",
     })
-    assert admin_login.status_code == 302
+    assert admin_login.status_code == 302, f"admin login failed: {admin_login.location}"
+    assert admin_login.location.endswith("/dashboard"), f"admin credentials rejected: {admin_login.location}"
     with admin.session_transaction() as session:
         assert session.get("_user_id") == str(admin_id)
     response = admin.get(f"/admin/payments/{payment_id}/proof")
