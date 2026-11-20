@@ -259,13 +259,15 @@ def payment_proof(payment_id):
         return send_from_directory(
             current_app.config["PRIVATE_UPLOAD_FOLDER"],
             str(relative),
-            as_attachment=False,
+            as_attachment=True,
+            download_name=f"platform-payment-proof-{payment.id}{relative.suffix.lower()}",
         )
     if relative.parts[0] == "proofs" and len(relative.parts) == 2:
         return send_from_directory(
             os.path.join(current_app.config["UPLOAD_FOLDER"], "proofs"),
             relative.parts[1],
-            as_attachment=False,
+            as_attachment=True,
+            download_name=f"platform-payment-proof-{payment.id}{PurePosixPath(relative.parts[1]).suffix.lower()}",
         )
     abort(404)
 
