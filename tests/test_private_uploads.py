@@ -100,8 +100,9 @@ def test_payment_receipt_rejects_unsupported_extension(app):
 
 def test_public_upload_route_denies_legacy_payment_proof_path(app):
     _add_payment(app, "proofs/legacy-receipt.pdf")
-    response = app.test_client().get("/uploads/proofs/legacy-receipt.pdf")
-    assert response.status_code == 404
+    client = app.test_client()
+    assert client.get("/uploads/proofs/legacy-receipt.pdf").status_code == 404
+    assert client.get("/static/uploads/proofs/legacy-receipt.pdf").status_code == 404
 
 
 def test_only_admin_can_download_platform_payment_proof(app):
