@@ -56,6 +56,12 @@ def store_signed_pdf(agreement, uploaded_file, uploader_id):
     original_name = secure_filename(uploaded_file.filename)
     if not original_name.lower().endswith(".pdf"):
         raise ValueError("Only PDF documents are accepted.")
+    uploaded_file.stream.seek(0, 2)
+    size = uploaded_file.stream.tell()
+    uploaded_file.stream.seek(0)
+    if size <= 0 or size > 15 * 1024 * 1024:
+        raise ValueError("The signed agreement PDF must be between 1 byte and 15 MB.")
+
     header = uploaded_file.stream.read(5)
     uploaded_file.stream.seek(0)
     if header != b"%PDF-":
@@ -69,13 +75,22 @@ def store_signed_pdf(agreement, uploaded_file, uploader_id):
     folder.mkdir(parents=True, mode=0o700, exist_ok=True)
     folder.chmod(0o700)
     destination = folder / filename
-    uploaded_file.save(destination)
-    destination.chmod(0o600)
+    try:
+        uploaded_file.save(destination)
+        destination.chmod(0o600)
+    except Exception:
+        destination.unlink(missing_ok=True)
+        raise
 
     agreement.signed_document_path = relative_path
     agreement.signed_uploaded_by_id = uploader_id
     agreement.signed_uploaded_at = datetime.utcnow()
     agreement.status = "signed_copy_uploaded"
     agreement.updated_at = datetime.utcnow()
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        destination.unlink(missing_ok=True)
+        raise
     return relative_path
