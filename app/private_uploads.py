@@ -18,8 +18,15 @@ def store_platform_payment_proof(uploaded_file):
     if not original or suffix not in ALLOWED_PAYMENT_EXTENSIONS:
         raise ValueError("Upload a PDF, PNG, JPG, or WEBP payment receipt.")
 
-    # Verify file signatures instead of trusting browser-provided MIME metadata.
+    # Bound receipt size before reading or storing untrusted upload data.
     stream = uploaded_file.stream
+    stream.seek(0, 2)
+    size = stream.tell()
+    stream.seek(0)
+    if size <= 0 or size > 10 * 1024 * 1024:
+        raise ValueError("Payment receipt must be between 1 byte and 10 MB.")
+
+    # Verify file signatures instead of trusting browser-provided MIME metadata.
     header = stream.read(16)
     stream.seek(0)
     signatures = {

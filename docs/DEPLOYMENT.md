@@ -28,7 +28,7 @@ Do not use the placeholder values in `.env.example` in production.
 3. Verify the backup is readable with `pg_restore --list`.
 4. Confirm the baseline application schema exists.
 5. Apply `migrations/20261102_tenancy_workflows.sql`.
-6. Apply `migrations/20261120_agreements_notifications.sql`.
+6. Apply `migrations/20261120_agreements_notifications.sql` (includes `property_local_details`, `rental_agreement` and `notification`).
 7. Verify the new columns, tables, indexes and foreign keys.
 8. Rehearse the complete migration sequence against a restored copy before production.
 
