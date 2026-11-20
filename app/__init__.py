@@ -135,6 +135,7 @@ def create_default_admin():
         password=generate_password_hash(password),
         role="admin",
         is_approved=True,
+        is_active_account=True,
     )
     db.session.add(admin)
     db.session.commit()
