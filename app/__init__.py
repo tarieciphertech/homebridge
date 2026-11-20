@@ -20,17 +20,20 @@ def create_app():
     app.config.from_object(ProductionConfig if env == "production" else DevelopmentConfig)
 
     if env == "production":
-        required = {
-            "SECRET_KEY": app.config.get("SECRET_KEY"),
-            "DATABASE_URL": app.config.get("SQLALCHEMY_DATABASE_URI"),
-        }
+        # Read production values at app-creation time rather than relying on
+        # config-class attributes evaluated when the module was first imported.
+        secret_key = os.environ.get("SECRET_KEY", "").strip()
+        database_url = os.environ.get("DATABASE_URL", "").strip()
+        required = {"SECRET_KEY": secret_key, "DATABASE_URL": database_url}
         missing = [key for key, value in required.items() if not value]
         if missing:
             raise RuntimeError(
                 "Production startup blocked: set " + ", ".join(missing) + " in the environment."
             )
-        if len(app.config["SECRET_KEY"]) < 32:
+        if len(secret_key) < 32:
             raise RuntimeError("Production SECRET_KEY must contain at least 32 characters.")
+        app.config["SECRET_KEY"] = secret_key
+        app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 
     from app.models import User, db
     db.init_app(app)
