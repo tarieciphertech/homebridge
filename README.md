@@ -337,6 +337,9 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 export FLASK_ENV=development
+# Set explicit credentials to provision the first administrator; no default admin is created.
+export ADMIN_EMAIL=admin@localhost
+export ADMIN_PASSWORD='replace-this-with-a-unique-password-of-at-least-16-characters'
 flask --app wsgi:app run
 ```
 
