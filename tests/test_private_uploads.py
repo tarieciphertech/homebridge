@@ -24,7 +24,7 @@ def app(tmp_path, monkeypatch):
 
     # Expose the resolved Flask-Login identity only inside the test app so
     # authorization failures can be distinguished from authentication failures.
-    from flask import session
+    from flask import current_app, session
     from flask_login import current_user
     from app.models import User
 
@@ -32,12 +32,13 @@ def app(tmp_path, monkeypatch):
     def _test_whoami():
         raw_id = session.get("_user_id")
         loaded = User.query.get(int(raw_id)) if raw_id else None
-        if current_user.is_authenticated:
-            identity = f"{current_user.id}:{current_user.role}"
-        else:
-            identity = "anonymous"
+        manager = current_app.login_manager
+        callback = getattr(manager, "_user_callback", None)
+        callback_user = callback(raw_id) if callback and raw_id else None
+        identity = f"{current_user.id}:{current_user.role}" if current_user.is_authenticated else "anonymous"
         query_identity = f"{loaded.id}:{loaded.role}" if loaded else "missing"
-        return f"session={raw_id};identity={identity};query={query_identity}"
+        callback_identity = f"{callback_user.id}:{callback_user.role}" if callback_user else "missing"
+        return f"session={raw_id};identity={identity};query={query_identity};callback={callback_identity}"
 
     application.config.update(
         TESTING=True,
@@ -150,7 +151,7 @@ def test_only_admin_can_download_platform_payment_proof(app):
         session["_fresh"] = True
     identity = admin.get("/__test/whoami")
     assert identity.status_code == 200
-    assert identity.data.decode() == f"session={admin_id};identity={admin_id}:admin;query={admin_id}:admin"
+    assert identity.data.decode() == f"session={admin_id};identity={admin_id}:admin;query={admin_id}:admin;callback={admin_id}:admin"
     response = admin.get(f"/admin/payments/{payment_id}/proof")
     assert response.status_code == 200
     assert response.data.startswith(b"%PDF-")
