@@ -318,3 +318,30 @@ def test_rent_payment_proof_is_scoped_to_tenant_and_property_landlord(app):
     assert student_other.get(f"/student/rent-payments/{payment_id}/proof").status_code == 404
     assert landlord_owner.get(f"/landlord/rent-payments/{payment_id}/proof").status_code == 200
     assert landlord_other.get(f"/landlord/rent-payments/{payment_id}/proof").status_code == 404
+
+
+
+def test_admin_platform_payment_confirmation_notifies_payer(app):
+    from app.models import Notification, Payment, User, db
+
+    payment_id = _add_payment(app, "platform-payments/confirmation-proof.pdf")
+    with app.app_context():
+        student_id = User.query.filter_by(email="student@test.homebridge").one().id
+
+    admin = app.test_client()
+    login = admin.post("/login", data={
+        "email": "admin@test.homebridge",
+        "password": "test-admin-password-12345",
+    })
+    assert login.status_code == 302
+    response = admin.post(f"/admin/confirm-payment/{payment_id}")
+    assert response.status_code == 302
+
+    with app.app_context():
+        payment = db.session.get(Payment, payment_id)
+        notice = Notification.query.filter_by(
+            user_id=student_id,
+            event_type="platform_payment_confirmed",
+        ).one()
+        assert payment.status == "confirmed"
+        assert notice.target_url == "/student/service-fee"
