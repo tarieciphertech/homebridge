@@ -345,3 +345,20 @@ def test_admin_platform_payment_confirmation_notifies_payer(app):
         ).one()
         assert payment.status == "confirmed"
         assert notice.target_url == "/student/service-fee"
+
+
+
+def test_private_upload_folder_cannot_be_inside_public_static(monkeypatch, tmp_path):
+    import importlib
+
+    public_static_child = Path(__file__).resolve().parents[1] / "app" / "static" / "uploads" / "private"
+    monkeypatch.setenv("FLASK_ENV", "development")
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'private-path-test.sqlite'}")
+    monkeypatch.setenv("PRIVATE_UPLOAD_FOLDER", str(public_static_child))
+
+    import config
+    importlib.reload(config)
+    from app import create_app
+
+    with pytest.raises(RuntimeError, match="outside the public static directory"):
+        create_app()
