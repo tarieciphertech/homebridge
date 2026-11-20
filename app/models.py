@@ -173,6 +173,33 @@ class Tenancy(db.Model):
     student = db.relationship("User", foreign_keys=[student_id], backref="tenancies")
 
 
+class RentalAgreement(db.Model):
+    """Workflow record for preparing and completing an offline rental agreement.
+
+    A tenancy has at most one current agreement record. The uploaded signed
+    copy is stored separately from the generated draft and is never treated
+    as an electronic signature.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    tenancy_id = db.Column(db.Integer, db.ForeignKey("tenancy.id"), nullable=False, unique=True, index=True)
+    landlord_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    student_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    status = db.Column(db.String(30), nullable=False, default="draft", index=True)
+    prepared_at = db.Column(db.DateTime)
+    landlord_reviewed_at = db.Column(db.DateTime)
+    student_reviewed_at = db.Column(db.DateTime)
+    signed_document_path = db.Column(db.String(255))
+    signed_uploaded_by_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    signed_uploaded_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    tenancy = db.relationship("Tenancy", backref=db.backref("rental_agreement", uselist=False))
+    landlord = db.relationship("User", foreign_keys=[landlord_id])
+    student = db.relationship("User", foreign_keys=[student_id])
+    signed_uploaded_by = db.relationship("User", foreign_keys=[signed_uploaded_by_id])
+
+
 class RentPayment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tenancy_id = db.Column(db.Integer, db.ForeignKey("tenancy.id"), nullable=False, index=True)
@@ -181,13 +208,19 @@ class RentPayment(db.Model):
     amount = db.Column(db.Numeric(12, 2), nullable=False)
     currency = db.Column(db.String(10), default="USD", nullable=False)
     payment_month = db.Column(db.String(7), nullable=False)
+    period_start = db.Column(db.Date)
+    period_end = db.Column(db.Date)
     reference = db.Column(db.String(100))
     proof_file = db.Column(db.String(255))
     status = db.Column(db.String(20), default="pending", nullable=False)
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     confirmed_at = db.Column(db.DateTime)
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    reviewed_at = db.Column(db.DateTime)
+    review_notes = db.Column(db.Text)
 
     tenancy = db.relationship("Tenancy", backref=db.backref("rent_payments", lazy=True))
+    reviewed_by = db.relationship("User", foreign_keys=[reviewed_by_id])
     property = db.relationship("Property", back_populates="rent_payments")
     student = db.relationship("User", foreign_keys=[student_id], backref="rent_payments")
 
@@ -202,6 +235,7 @@ class MaintenanceRequest(db.Model):
     status = db.Column(db.String(30), default="open", nullable=False)
     resolution_notes = db.Column(db.Text)
     cost = db.Column(db.Numeric(12, 2))
+    cost_currency = db.Column(db.String(10), nullable=False, default="USD")
     reported_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     resolved_at = db.Column(db.DateTime)
 
@@ -219,3 +253,20 @@ class Inquiry(db.Model):
     message = db.Column(db.Text)
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     is_handled = db.Column(db.Boolean, default=False, nullable=False)
+
+
+class Notification(db.Model):
+    """In-app event notification addressed to one account."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    actor_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    event_type = db.Column(db.String(50), nullable=False, index=True)
+    title = db.Column(db.String(180), nullable=False)
+    message = db.Column(db.String(500), nullable=False)
+    target_url = db.Column(db.String(500))
+    is_read = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+    read_at = db.Column(db.DateTime)
+
+    recipient = db.relationship("User", foreign_keys=[user_id], backref=db.backref("notifications", lazy="dynamic"))
+    actor = db.relationship("User", foreign_keys=[actor_id])

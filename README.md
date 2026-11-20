@@ -37,7 +37,7 @@ This section supersedes older status notes where they conflict. It is the latest
 
 ### Executive status
 
-<badge>Development milestone verified</badge>
+**Status:** Development milestone verified.
 
 The latest completed milestone is **tenancy onboarding**. The landlord offer flow, student accept/decline flow, and tenancy dashboards were deployed to the Oracle development environment and confirmed through browser testing by the project team.
 
@@ -76,16 +76,39 @@ Keep these backups until the migration and tenancy workflows have had sufficient
 
 A HomeBridge tenancy record stores the details accepted through the platform. It is **not** a signed lease, legal rental contract, proof of rent payment, or confirmation that rent has been collected. The landlord and student must still complete their separate written rental agreement and handle rent payments through their agreed process.
 
-### Next priorities — proposed for the next weekly cycle
+### Next priorities — current work in progress
 
-These are planned items, not claims of completed functionality:
+**Rental agreement lifecycle is under development on `feature/agreement-lifecycle`; it is not merged into `main` or deployed to Oracle.** The current development slice adds:
+- Role-protected agreement preview routes for the landlord who owns the tenancy and the student attached to it.
+- A per-tenancy `RentalAgreement` workflow record.
+- Separate landlord and student review acknowledgements and timestamps.
+- Status progression: `draft` → `under_review` → `ready_for_signing` → `signed_copy_uploaded`.
+- Signed-PDF upload after both parties have reviewed the draft.
+- Private signed-document storage outside the public static directory, with role-checked downloads for the landlord, student, and admin.
+- An admin oversight page for agreement status and signed-copy access.
+- A shared in-app notification inbox with unread counts, mark-as-read actions, and account-scoped notification ownership.
+- Notifications for new applications, application decisions and withdrawals, viewing proposals/cancellations/responses, and accepted or declined tenancy offers.
+- Student maintenance reporting for active tenancies, including issue title, description and priority.
+- Landlord maintenance management with open/in-progress/resolved/closed states, optional cost tracking, resolution notes, and student notifications.
+- Agreement review and signed-copy upload events also notify the other tenancy party.
+- Tenants can submit rent payment records for an active tenancy, with the amount, tenancy currency, payment month, optional reference, and private receipt upload.
+- Landlords can review rent submissions as pending, confirmed or rejected, add notes, and notify the student of the outcome.
+- Rent payment proofs are stored privately and downloaded only by the relevant tenant or the owning landlord. These rent records remain separate from HomeBridge platform-fee revenue.
+- Rent submissions capture a coverage date range, prevent overlapping pending/confirmed periods for the same tenancy, and enforce the tenancy's agreed currency.
+- PostgreSQL schema additions for existing maintenance/rent-payment tables are documented in `migrations/20261102_tenancy_workflows.sql`; take a backup and apply this migration before deploying the branch. New `RentalAgreement` and `Notification` tables are created by the existing SQLAlchemy startup initialization.
+- Existing property images and platform payment proofs retain their original public-upload storage paths; only signed rental agreements use the separate private document directory.
+- CI checks for Python compilation, Flask startup, agreement routes, database table creation, and Jinja template loading.
 
-1. **Formal rental agreement workflow:** prepare a downloadable agreement using the accepted tenancy details, with clear review and signature steps. Confirm the appropriate legal wording before treating it as a binding contract.
-2. **Notifications:** notify landlords and students when an offer is sent, accepted, declined, or approaching its start date.
-3. **Tenancy edge-case QA:** test invalid date ranges, expired offers, duplicate submissions, repeated clicks, access by the wrong user, and overlapping tenancy scenarios.
-4. **Tenancy management improvements:** review how parties view tenancy status, key dates, rent terms, and contact details.
-5. **Regression testing:** recheck application approval, viewing coordination, tenancy offer, student response, and dashboard navigation after subsequent changes.
-6. **Weekly planning:** agree which of these items should be prioritized before starting the next implementation slice.
+Review acknowledgements are **not electronic signatures**. Uploading a signed PDF does not prove that signatures are genuine or that the agreement is legally valid. HomeBridge does not collect rent or verify payment through this workflow. The draft still requires the parties to complete payment due dates, deposit, utilities, notice, inventory, and any other required terms. Legal wording must be reviewed for the applicable jurisdiction before production use.
+
+Before deployment, complete role-isolation tests, review-state transition tests, PDF upload/download validation, print layout checks, and regression tests for existing tenancy workflows. Confirm private upload directory permissions and backup coverage.
+
+Remaining proposed work:
+1. Add notifications when an agreement is ready for review and when the parties complete their offline signing process (if that process is brought into the platform).
+2. Test expired offers, repeated submissions, invalid dates, and overlapping tenancy scenarios.
+3. Review tenancy status, key dates, rent terms, and contact details.
+4. Regression-test application approval, viewing coordination, offer acceptance, and tenancy dashboards.
+5. Agree the next weekly priorities and owners.
 
 ### Weekly project update agreement
 
@@ -167,7 +190,7 @@ The development environment is intentionally separate from the public production
 - View property photos, amenities, rules and availability.
 - Submit and track accommodation applications.
 - Withdraw pending applications.
-- Respond to tenancy offers and view tenancy details.
+- Respond to tenancy offers, view tenancy details, and prepare a printable draft rental agreement for an accepted tenancy (feature branch; not yet deployed).
 - Submit student service-fee payment proof when a fee is configured.
 
 ### Landlords
@@ -180,7 +203,7 @@ The development environment is intentionally separate from the public production
 - Track verification and publication status.
 - Review applications and coordinate viewings.
 - Send tenancy offers for approved applications after viewing confirmation.
-- View tenancy details.
+- View tenancy details and prepare a printable draft rental agreement for an accepted tenancy (feature branch; not yet deployed).
 - Submit listing-fee payment proof when a listing fee is configured.
 
 ### Admins
@@ -238,6 +261,7 @@ The development environment is intentionally separate from the public production
 - Students can accept or decline offers from **My Applications**.
 - Accepting creates a tenancy record; declining does not.
 - Student and landlord tenancy pages are linked from their dashboards.
+- A printable draft rental agreement preview is available in the feature branch to both parties through role-checked routes; it is not yet merged/deployed and does not capture electronic signatures.
 - New tenancy records retain `rent_amount`, `rent_currency` and `rent_period`; legacy `monthly_rent` remains nullable for compatibility and is populated only for monthly offers.
 - An application-linked unique tenancy reference prevents duplicate tenancy creation.
 
@@ -313,6 +337,9 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 export FLASK_ENV=development
+# Set explicit credentials to provision the first administrator; no default admin is created.
+export ADMIN_EMAIL=admin@localhost
+export ADMIN_PASSWORD='replace-this-with-a-unique-password-of-at-least-16-characters'
 flask --app wsgi:app run
 ```
 
@@ -379,3 +406,59 @@ The team has agreed to maintain weekly progress updates. Keep this README curren
 ## Legacy repository
 
 The original `tarieciphertech/server-13-53-116-180-edcar` repository is intentionally left unchanged. `tarieciphertech/homebridge` is the active standalone HomeBridge repository.
+
+
+---
+
+## Current integration handover — 20 November 2026
+
+This section supersedes older notes above where they conflict. It describes the current integration branch; it is **not** a production deployment confirmation.
+
+### Current branch and verification
+
+- Active integration branch: `integration/client-ready-release`.
+- Base: the rental-agreement and operations work from `feature/agreement-lifecycle`.
+- The branch combines the agreement, notification, maintenance and rent-payment work with production hardening and client launch documentation.
+- Latest recorded automated security regression run: **15 passed**.
+- Latest recorded application feature check: **passed**, including startup, expected routes, database schema checks and Jinja template compilation.
+- The integration branch remains separate from `main`; no Oracle deployment has been performed for these changes.
+
+### Security and privacy changes integrated
+
+- Production startup requires an explicitly configured database URL and a random secret of at least 32 characters.
+- First administrator provisioning requires an explicit email and a password of at least 16 characters. No predictable default administrator password is created.
+- Secure session and remember-cookie settings are enabled for production.
+- Production startup no longer calls `db.create_all()`; reviewed SQL migrations are required.
+- New platform-fee receipts are stored outside the public static directory with restricted file permissions and validated file signatures.
+- Property images are validated and re-encoded before being stored in the public property-image directory.
+- Payment proof downloads are routed through administrator authorization and forced attachment downloads.
+- The public `/uploads` route permits property images only.
+- The Flask static route also blocks non-property uploads under `/static/uploads`, preventing the old proof path from bypassing the public upload restriction.
+- Application-wide CSRF protection is enabled. POST forms include CSRF tokens; logout and inquiry completion use POST.
+- Rent-payment receipt downloads are scoped to the tenant and the landlord who owns the property.
+
+### Database migrations
+
+- `migrations/20261102_tenancy_workflows.sql` — tenancy and rent/maintenance workflow additions.
+- `migrations/20261120_agreements_notifications.sql` — agreement and notification tables, plus idempotent rent-payment and maintenance columns.
+- `migrations/README.md` — required migration order and production precautions.
+- `docs/DEPLOYMENT.md` — environment, backup, migration, private-storage and release checks.
+- `.env.example` — safe configuration template; replace every placeholder and never commit the real `.env`.
+
+### Important legacy-file warning
+
+Historical payment proofs may still exist physically under the old `app/static/uploads/proofs` directory. The Flask application now blocks access through its public routes and static endpoint, but an Nginx static alias could serve those files without reaching Flask. Before production, inspect the actual Nginx configuration, move legacy receipts into private storage, update their database paths, and test direct URL access.
+
+### Remaining go-live work
+
+1. Complete role and record-ownership regression tests for every private resource and business action.
+2. Verify the latest security and feature workflows on the final release commit.
+3. Review all route permissions, payment state transitions, tenancy edge cases and file handling.
+4. Rehearse the migrations and backup restoration against a restored database copy.
+5. Inspect the live Oracle Compose and Nginx configuration without disturbing other hosted services.
+6. Migrate legacy payment receipts into private storage.
+7. Run full browser-based journeys for students, landlords and administrators.
+8. Obtain business approval for fee amounts, payment instructions, terms, privacy and support procedures.
+9. Deploy only after the release gate in `docs/DEPLOYMENT.md` is satisfied.
+
+The platform is still in development. Passing CI is evidence that the tested code paths pass; it is not proof that the live Oracle deployment, Nginx configuration, production database, business processes or every browser journey have been verified.

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Rental Agreements · HomeBridge Admin{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div><h1>Rental agreements</h1><p class="text-muted mb-0">Oversight of draft reviews and signed-copy uploads. This page does not certify legal validity.</p></div>
+    <a class="btn btn-outline-light" href="{{ url_for('admin_bp.dashboard') }}">Admin dashboard</a>
+  </div>
+  <div class="card p-3">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>Reference</th><th>Property / room</th><th>Landlord</th><th>Student</th><th>Status</th><th>Last updated</th><th>Document</th></tr></thead>
+        <tbody>
+        {% for agreement in agreements %}
+          <tr>
+            <td>HB-TEN-{{ '%06d'|format(agreement.tenancy_id) }}</td>
+            <td>{{ agreement.tenancy.property.title }}{% if agreement.tenancy.room_label %}<br><small class="text-muted">{{ agreement.tenancy.room_label }}</small>{% endif %}</td>
+            <td>{{ agreement.landlord.name }}</td>
+            <td>{{ agreement.student.name }}</td>
+            <td><span class="badge bg-secondary">{{ agreement.status|replace('_',' ')|title }}</span></td>
+            <td>{{ agreement.updated_at.strftime('%d %b %Y %H:%M') }}</td>
+            <td>{% if agreement.signed_document_path %}<a href="{{ url_for('admin_bp.download_signed_agreement', agreement_id=agreement.id) }}">Download PDF</a>{% else %}<span class="text-muted">Not uploaded</span>{% endif %}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" class="text-muted text-center py-4">No rental agreement records have been prepared yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

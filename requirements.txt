@@ -8,3 +8,5 @@ gunicorn
 psycopg2-binary
 python-dotenv
 pillow
+Flask-WTF>=1.2.2
+pytest>=8.0

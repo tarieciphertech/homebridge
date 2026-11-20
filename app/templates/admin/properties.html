@@ -30,20 +30,20 @@
             <td>
               <a class="btn btn-sm btn-outline-light mb-1" href="{{ url_for('public.property_detail', property_id=p.id) }}" target="_blank">Preview</a>
               {% if not p.is_verified %}
-                <form method="post" action="{{ url_for('admin_bp.verify_property', property_id=p.id) }}" class="d-inline">
+                <form method="post" action="{{ url_for('admin_bp.verify_property', property_id=p.id) }}" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button class="btn btn-sm btn-success mb-1" type="submit">Verify</button>
                 </form>
               {% else %}
-                <form method="post" action="{{ url_for('admin_bp.reject_property', property_id=p.id) }}" class="d-inline">
+                <form method="post" action="{{ url_for('admin_bp.reject_property', property_id=p.id) }}" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button class="btn btn-sm btn-outline-danger mb-1" type="submit">Reject</button>
                 </form>
               {% endif %}
               {% if p.is_verified %}
-                <form method="post" action="{{ url_for('admin_bp.publish_property', property_id=p.id) }}" class="d-inline">
+                <form method="post" action="{{ url_for('admin_bp.publish_property', property_id=p.id) }}" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button class="btn btn-sm btn-outline-light mb-1" type="submit">{{ 'Unpublish' if p.is_published else 'Publish' }}</button>
                 </form>
                 {% if p.is_published %}
-                  <form method="post" action="{{ url_for('admin_bp.feature_property', property_id=p.id) }}" class="d-inline">
+                  <form method="post" action="{{ url_for('admin_bp.feature_property', property_id=p.id) }}" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button class="btn btn-sm btn-outline-light mb-1" type="submit">{{ 'Unfeature' if p.is_featured else 'Feature' }}</button>
                   </form>
                 {% endif %}
