@@ -9,6 +9,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 from app.models import Application, Inquiry, Payment, PlatformSetting, Property, PropertyImage, RentalAgreement, User, db
+from app.notifications import create_in_app_notification
 
 admin_bp = Blueprint("admin_bp", __name__, url_prefix="/admin")
 
@@ -282,8 +283,21 @@ def confirm_payment(payment_id):
     else:
         payment.status = "confirmed"
         payment.confirmed_at = datetime.utcnow()
+        target = (
+            url_for("student.service_fee")
+            if payment.payment_type == "student_service_fee"
+            else url_for("landlord.listing_fee_page")
+        )
+        create_in_app_notification(
+            payment.user_id,
+            "platform_payment_confirmed",
+            "HomeBridge payment confirmed",
+            "Your HomeBridge platform payment has been confirmed. Any separate account or property approval still applies.",
+            target,
+            current_user.id,
+        )
         db.session.commit()
-        flash("Payment confirmed. Account approval remains a separate action.", "success")
+        flash("Payment confirmed. Account or property approval remains a separate action.", "success")
     return redirect(url_for("admin_bp.payments"))
 
 
@@ -296,6 +310,19 @@ def reject_payment(payment_id):
         flash("Only pending payments can be rejected.", "warning")
     else:
         payment.status = "rejected"
+        target = (
+            url_for("student.service_fee")
+            if payment.payment_type == "student_service_fee"
+            else url_for("landlord.listing_fee_page")
+        )
+        create_in_app_notification(
+            payment.user_id,
+            "platform_payment_rejected",
+            "HomeBridge payment needs attention",
+            "Your HomeBridge platform payment was not confirmed. Please review the payment details and contact support if you need help.",
+            target,
+            current_user.id,
+        )
         db.session.commit()
         flash("Payment rejected.", "warning")
     return redirect(request.referrer or url_for("admin_bp.payments"))
