@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, abort, request
 from flask_login import LoginManager
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
@@ -67,6 +67,16 @@ def create_app():
     app.register_blueprint(landlord)
     app.register_blueprint(admin_bp)
     app.register_blueprint(notifications_bp)
+
+    @app.before_request
+    def block_sensitive_static_uploads():
+        # Flask's built-in /static route bypasses the public /uploads route.
+        # Only property photographs may be served from the static uploads tree.
+        if request.endpoint == "static":
+            filename = (request.view_args or {}).get("filename", "").replace("\\", "/")
+            parts = [part for part in filename.split("/") if part]
+            if parts and parts[0] == "uploads" and (len(parts) < 2 or parts[1] != "properties"):
+                abort(404)
 
     @app.context_processor
     def inject_notification_count():
