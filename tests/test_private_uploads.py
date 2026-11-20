@@ -202,6 +202,7 @@ def test_production_startup_rejects_short_secret(monkeypatch):
     monkeypatch.setenv("FLASK_ENV", "production")
     monkeypatch.setenv("SECRET_KEY", "too-short")
     monkeypatch.setenv("DATABASE_URL", "postgresql://unused:unused@127.0.0.1/unused")
+    monkeypatch.setenv("PRIVATE_UPLOAD_FOLDER", "/var/lib/homebridge/private-uploads")
     from app import create_app
 
     with pytest.raises(RuntimeError, match="at least 32 characters"):
@@ -535,3 +536,15 @@ def test_signed_agreement_rejects_oversized_pdf(app):
         agreement = SimpleNamespace(status="ready_for_signing")
         with pytest.raises(ValueError, match="15 MB"):
             store_signed_pdf(agreement, upload, uploader_id=1)
+
+
+
+def test_production_startup_requires_explicit_private_upload_folder(monkeypatch):
+    monkeypatch.setenv("FLASK_ENV", "production")
+    monkeypatch.setenv("SECRET_KEY", "x" * 48)
+    monkeypatch.setenv("DATABASE_URL", "postgresql://unused:unused@127.0.0.1/unused")
+    monkeypatch.delenv("PRIVATE_UPLOAD_FOLDER", raising=False)
+    from app import create_app
+
+    with pytest.raises(RuntimeError, match="PRIVATE_UPLOAD_FOLDER"):
+        create_app()

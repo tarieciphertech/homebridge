@@ -29,6 +29,8 @@ jobs:
           pip install -r requirements.txt
       - name: Compile application and tests
         run: python -m compileall -q app tests
+      - name: Validate read-only release preflight script
+        run: bash -n scripts/homebridge_release_preflight.sh
       - name: Run private upload security tests
         env:
           FLASK_ENV: development

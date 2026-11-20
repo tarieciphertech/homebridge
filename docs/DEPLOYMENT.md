@@ -10,7 +10,7 @@ Set the following outside Git:
 - `SECRET_KEY`: randomly generated, at least 32 characters
 - `DATABASE_URL`: production PostgreSQL connection string
 - `ADMIN_EMAIL` and `ADMIN_PASSWORD` for first administrator provisioning only
-- `PRIVATE_UPLOAD_FOLDER`: absolute path outside the public web root
+- `PRIVATE_UPLOAD_FOLDER`: absolute path outside the public web root, backed by a persistent Docker volume
 - Mail and payment configuration as required by the business
 
 Generate a secret with:
@@ -36,8 +36,10 @@ The application deliberately does not call `db.create_all()` in production. It i
 
 ## Private uploads
 
-- Create `PRIVATE_UPLOAD_FOLDER` outside `app/static` and outside any Nginx public alias.
-- Set the directory owner to the HomeBridge application user.
+- Create a host directory such as `/opt/homebridge/private-uploads` outside `app/static` and outside any Nginx public alias.
+- Mount that host directory into the HomeBridge container at a stable path such as `/var/lib/homebridge/private-uploads`, and set `PRIVATE_UPLOAD_FOLDER=/var/lib/homebridge/private-uploads` in the container environment. Adapt the mount to the existing Compose file; do not replace the shared Compose stack.
+- Production startup now refuses to run if `PRIVATE_UPLOAD_FOLDER` is missing, relative, or inside the public static directory.
+- Set the host directory owner to the HomeBridge application user/container UID.
 - Restrict the directory to mode `0700`; private files are written with mode `0600`.
 - Include the private upload directory in encrypted, access-controlled backups.
 - Review legacy payment receipts stored under the old `static/uploads/proofs` directory. The Flask static route now blocks those paths, but a direct Nginx alias could bypass Flask. Inspect the actual Nginx configuration and migrate legacy files and database references into private storage before production.
