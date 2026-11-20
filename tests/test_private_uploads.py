@@ -391,6 +391,7 @@ def test_landlord_offer_student_acceptance_creates_one_tenancy(app):
         )
         db.session.add_all([landlord, student])
         db.session.flush()
+        student_id = student.id
 
         prop = Property(
             landlord_id=landlord.id,
@@ -453,7 +454,7 @@ def test_landlord_offer_student_acceptance_creates_one_tenancy(app):
         assert offer.status == "proposed"
         offer_id = offer.id
         assert Notification.query.filter_by(
-            user_id=student.id,
+            user_id=student_id,
             event_type="tenancy_offer",
         ).count() == 1
 
