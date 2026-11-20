@@ -18,6 +18,20 @@ ALTER TABLE rent_payment
 ALTER TABLE rent_payment
     ADD COLUMN IF NOT EXISTS review_notes TEXT;
 
+-- Zimbabwe-focused institution, campus and rent details used by marketplace search.
+CREATE TABLE IF NOT EXISTS property_local_details (
+    id SERIAL PRIMARY KEY,
+    property_id INTEGER NOT NULL REFERENCES property(id),
+    institution_name VARCHAR(180),
+    campus_name VARCHAR(180),
+    distance_km NUMERIC(6, 2),
+    rent_currency VARCHAR(10) NOT NULL DEFAULT 'USD',
+    rent_period VARCHAR(20) NOT NULL DEFAULT 'month'
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ix_property_local_details_property_id
+    ON property_local_details (property_id);
+
 CREATE TABLE IF NOT EXISTS rental_agreement (
     id SERIAL PRIMARY KEY,
     tenancy_id INTEGER NOT NULL UNIQUE REFERENCES tenancy(id),
