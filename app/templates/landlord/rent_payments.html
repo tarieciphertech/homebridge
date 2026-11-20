@@ -11,7 +11,7 @@
       <div class="small text-muted">Submitted {{ payment.submitted_at.strftime('%d %b %Y %H:%M') }}</div>
       {% if payment.proof_file %}<a class="btn btn-sm btn-outline-dark mt-2" href="{{ url_for('landlord.download_rent_payment_proof', payment_id=payment.id) }}">Download proof</a>{% endif %}
       {% if payment.status=='pending' %}
-      <form method="post" action="{{ url_for('landlord.review_rent_payment', payment_id=payment.id) }}" class="row g-3 mt-2">
+      <form method="post" action="{{ url_for('landlord.review_rent_payment', payment_id=payment.id) }}" class="row g-3 mt-2"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="col-md-8"><label class="form-label">Review note (optional)</label><input class="form-control" name="review_notes" maxlength="5000" placeholder="Add a note for the student"></div>
         <div class="col-md-2 d-flex align-items-end"><button class="btn btn-success w-100" name="decision" value="confirmed" type="submit">Confirm</button></div>
         <div class="col-md-2 d-flex align-items-end"><button class="btn btn-outline-danger w-100" name="decision" value="rejected" type="submit">Reject</button></div>
