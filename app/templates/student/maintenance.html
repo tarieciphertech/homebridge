@@ -9,7 +9,7 @@
     <div class="col-lg-6"><div class="card p-4 h-100">
       <h3 class="h4">{{ tenancy.property.title }}{% if tenancy.room_label %} · {{ tenancy.room_label }}{% endif %}</h3>
       <p class="text-muted small">{{ tenancy.property.location }}, {{ tenancy.property.city }}</p>
-      <form method="post" action="{{ url_for('student.report_maintenance', tenancy_id=tenancy.id) }}">
+      <form method="post" action="{{ url_for('student.report_maintenance', tenancy_id=tenancy.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="mb-3"><label class="form-label">Issue title</label><input class="form-control" name="title" maxlength="200" required placeholder="e.g. Leaking kitchen tap"></div>
         <div class="mb-3"><label class="form-label">Describe the issue</label><textarea class="form-control" name="description" rows="3" maxlength="5000" required></textarea></div>
         <div class="mb-3"><label class="form-label">Priority</label><select class="form-select" name="priority"><option value="normal">Normal</option><option value="low">Low</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
