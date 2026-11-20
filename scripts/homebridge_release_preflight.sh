@@ -32,8 +32,11 @@ fi
 
 section "Docker Compose"
 if [ -f "$COMPOSE" ]; then
-  docker compose -f "$COMPOSE" config --quiet
-  status "Compose configuration" "$([ "$?" -eq 0 ] && echo valid || echo invalid)"
+  if docker compose -f "$COMPOSE" config --quiet; then
+    status "Compose configuration" "valid"
+  else
+    status "Compose configuration" "INVALID"
+  fi
   docker compose -f "$COMPOSE" ps
 else
   status "Compose file" "not found at $COMPOSE"
@@ -55,6 +58,35 @@ if docker inspect "$CONTAINER" >/dev/null 2>&1; then
   else
     status "PRIVATE_UPLOAD_FOLDER" "NOT SET in container environment"
   fi
+  echo "Database schema (read-only inspection; connection string hidden):"
+  docker exec -i "$CONTAINER" python - <<'PY'
+import os
+try:
+    from sqlalchemy import create_engine, inspect
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        print("DATABASE_URL: missing")
+    else:
+        inspector = inspect(create_engine(url))
+        tables = set(inspector.get_table_names())
+        required = {"property_local_details", "rental_agreement", "notification"}
+        missing = sorted(required - tables)
+        print("Database connection: successful")
+        print("Required release tables:", "present" if not missing else "MISSING " + ", ".join(missing))
+        for table in ("rent_payment", "maintenance_request"):
+            if table in tables:
+                columns = {column["name"] for column in inspector.get_columns(table)}
+                expected = (
+                    {"period_start", "period_end", "reviewed_by_id", "reviewed_at", "review_notes"}
+                    if table == "rent_payment" else {"cost_currency"}
+                )
+                absent = sorted(expected - columns)
+                print(f"{table} release columns:", "present" if not absent else "MISSING " + ", ".join(absent))
+            else:
+                print(f"{table}: MISSING")
+except Exception as exc:
+    print("Database inspection failed:", type(exc).__name__, str(exc)[:240])
+PY
 else
   status "Container" "$CONTAINER not found"
 fi
