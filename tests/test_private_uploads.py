@@ -497,3 +497,41 @@ def test_release_migration_covers_all_new_production_tables():
         assert f"CREATE TABLE IF NOT EXISTS {table}" in migration
     for column in ("period_start", "period_end", "reviewed_by_id", "reviewed_at", "review_notes", "cost_currency"):
         assert column in migration
+
+
+
+def test_platform_payment_receipt_rejects_oversized_file(app):
+    from app.private_uploads import store_platform_payment_proof
+
+    with app.app_context():
+        receipt = FileStorage(
+            stream=BytesIO(b"%PDF-" + (b"x" * (10 * 1024 * 1024))),
+            filename="large-receipt.pdf",
+        )
+        with pytest.raises(ValueError, match="10 MB"):
+            store_platform_payment_proof(receipt)
+
+
+def test_signed_agreement_rejects_invalid_pdf_signature(app):
+    from types import SimpleNamespace
+    from app.agreement_workflow import store_signed_pdf
+
+    with app.app_context():
+        upload = FileStorage(stream=BytesIO(b"not a PDF"), filename="signed.pdf")
+        agreement = SimpleNamespace(status="ready_for_signing")
+        with pytest.raises(ValueError, match="valid PDF"):
+            store_signed_pdf(agreement, upload, uploader_id=1)
+
+
+def test_signed_agreement_rejects_oversized_pdf(app):
+    from types import SimpleNamespace
+    from app.agreement_workflow import store_signed_pdf
+
+    with app.app_context():
+        upload = FileStorage(
+            stream=BytesIO(b"%PDF-" + (b"x" * (15 * 1024 * 1024))),
+            filename="signed.pdf",
+        )
+        agreement = SimpleNamespace(status="ready_for_signing")
+        with pytest.raises(ValueError, match="15 MB"):
+            store_signed_pdf(agreement, upload, uploader_id=1)
