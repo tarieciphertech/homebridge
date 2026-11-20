@@ -34,7 +34,7 @@
               <td>
                 <a class="btn btn-sm btn-outline-light" href="{{ url_for('landlord.edit_property', property_id=property.id) }}">Edit</a>
                 {% if not property.is_verified %}
-                  <form method="post" action="{{ url_for('landlord.submit_property', property_id=property.id) }}" class="d-inline">
+                  <form method="post" action="{{ url_for('landlord.submit_property', property_id=property.id) }}" class="d-inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button class="btn btn-sm btn-gold" type="submit">Submit for Review</button>
                   </form>
                 {% endif %}
