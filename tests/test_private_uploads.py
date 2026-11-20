@@ -146,9 +146,13 @@ def test_only_admin_can_download_platform_payment_proof(app):
     assert student.get(f"/admin/payments/{payment_id}/proof").status_code == 302
 
     admin = app.test_client()
+    login_response = admin.post("/login", data={
+        "email": "admin@test.homebridge",
+        "password": "test-admin-password-12345",
+    })
+    assert login_response.status_code == 302
     with admin.session_transaction() as session:
-        session["_user_id"] = str(admin_id)
-        session["_fresh"] = True
+        assert session.get("_user_id") == str(admin_id)
     identity = admin.get("/__test/whoami")
     assert identity.status_code == 200
     assert identity.data.decode() == f"session={admin_id};identity={admin_id}:admin;query={admin_id}:admin;callback={admin_id}:admin"
