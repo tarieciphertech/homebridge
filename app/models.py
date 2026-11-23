@@ -185,6 +185,7 @@ class RentalAgreement(db.Model):
     landlord_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     student_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
     status = db.Column(db.String(30), nullable=False, default="draft", index=True)
+    editable_fields = db.Column(db.Text)
     prepared_at = db.Column(db.DateTime)
     landlord_reviewed_at = db.Column(db.DateTime)
     student_reviewed_at = db.Column(db.DateTime)
