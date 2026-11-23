@@ -8,7 +8,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
-from app.agreement_workflow import get_or_create_agreement, record_review, store_signed_pdf
+from app.agreement_workflow import get_or_create_agreement, get_agreement_fields, save_agreement_fields, record_review, store_signed_pdf
 from app.notifications import create_in_app_notification
 from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, PropertyLocalDetails, RentPayment, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
 
@@ -441,11 +441,35 @@ def rental_agreement(tenancy_id):
         tenancy=tenancy,
         offer=offer,
         agreement=agreement,
+        agreement_fields=get_agreement_fields(agreement),
         generated_at=datetime.utcnow(),
         document_ref=f"HB-TEN-{tenancy.id:06d}",
         back_url=url_for("landlord.tenancies"),
     )
 
+
+
+@landlord.route("/tenancies/<int:tenancy_id>/agreement/edit", methods=["POST"])
+@landlord_required
+def save_rental_agreement(tenancy_id):
+    tenancy = Tenancy.query.join(Property).filter(Tenancy.id == tenancy_id, Property.landlord_id == current_user.id).first_or_404();
+    agreement = RentalAgreement.query.filter_by(tenancy_id=tenancy.id).first_or_404()
+    try:
+        save_agreement_fields(agreement, request.form)
+    except ValueError as exc:
+        flash(str(exc), "danger")
+        return redirect(url_for("landlord.rental_agreement", tenancy_id=tenancy.id))
+    create_in_app_notification(
+        tenancy.student_id,
+        "agreement_edited",
+        "Rental agreement draft updated",
+        f"{current_user.name} updated the draft rental agreement for {tenancy.property.title}. Both parties must review the latest version again.",
+        url_for("student.rental_agreement", tenancy_id=tenancy.id),
+        current_user.id,
+    )
+    db.session.commit()
+    flash("Draft changes saved. Both review acknowledgements have been reset; please review the updated version.", "success")
+    return redirect(url_for("landlord.rental_agreement", tenancy_id=tenancy.id))
 
 
 @landlord.route("/tenancies/<int:tenancy_id>/agreement/review", methods=["POST"])
