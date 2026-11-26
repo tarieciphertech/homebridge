@@ -71,7 +71,7 @@ try:
         inspector = inspect(create_engine(url))
         tables = set(inspector.get_table_names())
         required = {
-            "property_local_details", "rental_agreement", "notification",
+            "property_local_details", "rental_agreement", "notification", "property_charge", "property_transaction",
             "admin_role", "admin_permission", "admin_role_permission",
             "admin_user_role", "admin_audit_log",
         }
