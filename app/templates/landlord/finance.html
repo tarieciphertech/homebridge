@@ -27,7 +27,7 @@
     <h2 class="h4">Charges and balances</h2>
     {% for charge in charges %}
     <div class="border-top py-3">
-      <div class="d-flex justify-content-between flex-wrap gap-2"><div><strong>{{ charge.title }}</strong> · {{ charge.property.title }}</div><span class="badge {% if charge.payment_status=='paid' %}text-bg-success{% elif charge.payment_status=='partially paid' %}text-bg-info{% else %}text-bg-warning{% endif %}">{{ charge.payment_status|title }}</span></div>
+      <div class="d-flex justify-content-between flex-wrap gap-2"><div><strong>{{ charge.title }}</strong> · {{ charge.property_listing.title }}</div><span class="badge {% if charge.payment_status=='paid' %}text-bg-success{% elif charge.payment_status=='partially paid' %}text-bg-info{% else %}text-bg-warning{% endif %}">{{ charge.payment_status|title }}</span></div>
       <div class="small text-muted">{{ charge.tenant.name }} · {{ charge.charge_type|replace('_',' ')|title }} · Due {{ charge.due_date.strftime('%d %b %Y') }}</div>
       <div class="mt-1">{{ charge.currency }} {{ '%.2f'|format(charge.amount) }} charged · {{ '%.2f'|format(charge.paid_amount) }} confirmed · <strong>{{ '%.2f'|format(charge.balance_due) }} outstanding</strong>{% if charge.pending_amount %} · {{ '%.2f'|format(charge.pending_amount) }} awaiting review{% endif %}</div>
       {% if charge.charge_type=='security_deposit' and charge.paid_amount > 0 %}
@@ -40,7 +40,7 @@
     <h2 class="h4">Tenant transaction submissions</h2>
     {% for transaction in transactions %}
     <div class="border-top py-3">
-      <div class="d-flex justify-content-between flex-wrap gap-2"><strong>{{ transaction.charge.title }} · {{ transaction.property.title }}</strong><span class="badge {% if transaction.status=='confirmed' %}text-bg-success{% elif transaction.status=='rejected' %}text-bg-danger{% else %}text-bg-warning{% endif %}">{{ transaction.status|title }}</span></div>
+      <div class="d-flex justify-content-between flex-wrap gap-2"><strong>{{ transaction.charge.title }} · {{ transaction.property_listing.title }}</strong><span class="badge {% if transaction.status=='confirmed' %}text-bg-success{% elif transaction.status=='rejected' %}text-bg-danger{% else %}text-bg-warning{% endif %}">{{ transaction.status|title }}</span></div>
       <div>{{ transaction.tenant.name }} · {{ transaction.currency }} {{ transaction.amount }} · {{ transaction.method|replace('_',' ')|title }}{% if transaction.reference %} · Ref {{ transaction.reference }}{% endif %}</div>
       <div class="small text-muted">Submitted {{ transaction.submitted_at.strftime('%d %b %Y %H:%M') }}</div>
       {% if transaction.proof_file %}<a class="btn btn-sm btn-outline-dark mt-2" href="{{ url_for('landlord.download_property_transaction_proof', transaction_id=transaction.id) }}">View payment proof</a>{% endif %}
