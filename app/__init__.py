@@ -131,6 +131,9 @@ def create_app():
             db.create_all()
             from app.admin_access import seed_admin_access_control
             seed_admin_access_control()
+        else:
+            from app.admin_access import validate_admin_access_control
+            validate_admin_access_control()
         create_default_admin()
 
     return app
