@@ -17,19 +17,26 @@ This is a Zimbabwe-first product direction, not a claim that all Zimbabwean inst
 
 HomeBridge is a student-focused accommodation marketplace and property-management platform for Zimbabwe.
 
+## Domain migration — 26 November 2026
+
+The Oracle development/test deployment now uses **https://homebridge.synexistech.co.zw**. DNS points to the existing Oracle host, HTTPS is enabled with a Let's Encrypt certificate, and the login endpoint was verified with HTTP 200. The former hostname, **https://homebridge.cyphertech.co.zw**, is retained as a permanent HTTPS redirect to the Synexis hostname so existing links continue to work. Keep the old DNS record and certificate while the redirect is required.
+
+This is a hostname migration only: the HomeBridge application, database, Docker container, and other services on the shared Oracle host were not migrated or replaced. `homebridge.co.zw` remains the intended separate production domain; do not treat it as deployed based on this development-host migration.
+
 ## Current URLs
 
 | Purpose | URL |
 |---|---|
 | Main / production domain | https://homebridge.co.zw |
-| Current Oracle development/test site | https://homebridge.cyphertech.co.zw |
+| Current Oracle development/test site | https://homebridge.synexistech.co.zw |
+| Legacy hostname (permanent redirect) | https://homebridge.cyphertech.co.zw → https://homebridge.synexistech.co.zw |
 | Student portal | https://homebridge.co.zw/student |
 | Landlord portal | https://homebridge.co.zw/landlord |
 | Admin portal | https://homebridge.co.zw/admin |
 | Future API | https://api.homebridge.co.zw |
 | GitHub repository | https://github.com/tarieciphertech/homebridge |
 
-> **Environment note:** `homebridge.co.zw` is the intended public production domain. The currently deployed and verified development/testing environment is `homebridge.cyphertech.co.zw` on the Oracle instance. The student, landlord, admin, and API URLs above describe the planned/public route structure and should not be assumed to be independently deployed unless verified.
+> **Environment note:** `homebridge.co.zw` remains the intended separate public production domain. The currently deployed and verified Oracle development/testing environment is `homebridge.synexistech.co.zw`; `homebridge.cyphertech.co.zw` permanently redirects to it. The student, landlord, admin, and API URLs above describe the planned/public route structure and should not be assumed to be independently deployed unless verified.
 
 ## Latest team handover — 2 November 2026
 
@@ -168,7 +175,7 @@ The core marketplace, user roles, property workflow, payment foundations, admin 
 ### Current development environment
 
 - **Development/test host:** Oracle Cloud VPS
-- **Application URL:** `https://homebridge.cyphertech.co.zw`
+- **Application URL:** `https://homebridge.synexistech.co.zw`
 - **Reverse proxy:** Nginx
 - **Application server:** Gunicorn
 - **Container:** Docker
@@ -354,7 +361,7 @@ The application is pulled from the GitHub `main` branch and built with Docker Co
 ```text
 Internet
    ↓
-homebridge.cyphertech.co.zw
+homebridge.synexistech.co.zw
    ↓
 Nginx :443
    ↓
@@ -381,7 +388,7 @@ docker compose up -d --build
 Check the application after deployment:
 
 ```bash
-curl -I https://homebridge.cyphertech.co.zw/
+curl -I https://homebridge.synexistech.co.zw/
 ```
 
 A `302` response redirecting `/` to `/properties` is expected behavior. For authenticated features, verify the workflow in a browser using the appropriate role; an unauthenticated redirect is not proof that the feature itself works.
