@@ -14,6 +14,8 @@ class User(UserMixin, db.Model):
     phone = db.Column(db.String(30))
     password = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="student", index=True)
+    # Public seeker category; keep the legacy student role for existing workflows.
+    seeker_type = db.Column(db.String(30), nullable=True, index=True)
     is_approved = db.Column(db.Boolean, default=False, nullable=False)
     is_active_account = db.Column(db.Boolean, default=True, nullable=False)
     must_change_password = db.Column(db.Boolean, default=False, nullable=False)

@@ -2,9 +2,9 @@
 {% block title %}Create Account · HomeBridge{% endblock %}
 {% block content %}
 <div class="container py-5"><div class="row justify-content-center"><div class="col-md-6"><div class="card p-4">
-<div class="hb-kicker">WELCOME TO HOMEBRIDGE</div><h2>Create your account</h2><p class="text-muted">Choose how you would like to use HomeBridge.</p>
+<div class="hb-kicker">WELCOME TO HOMEBRIDGE</div><h2>Create your account</h2><p class="text-muted">Find a place to live, or list accommodation for others.</p>
 <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<label class="form-label">Account Type</label><select class="form-select mb-3" name="role" required><option value="student">Student — find accommodation</option><option value="landlord">Landlord — list and manage property</option></select>
+<label class="form-label">I want to</label><select class="form-select mb-3" name="role" required><option value="student">Find accommodation as a student</option><option value="professional">Find accommodation as a working professional</option><option value="family">Find accommodation for my family</option><option value="individual">Find accommodation for myself</option><option value="landlord">List and manage rental property</option></select>
 <label class="form-label">Full Name</label><input class="form-control mb-3" name="name" autocomplete="name" required>
 <label class="form-label">Email</label><input class="form-control mb-3" type="email" name="email" autocomplete="email" required>
 <label class="form-label">Phone</label><input class="form-control mb-3" name="phone" autocomplete="tel">

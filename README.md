@@ -1,22 +1,21 @@
 # HomeBridge
 
-## Product direction — Zimbabwe-first student accommodation
+## Product direction — general accommodation marketplace
 
-HomeBridge is being shaped around students and families finding suitable accommodation in Zimbabwe when education takes them away from home. The initial audience includes university, college, polytechnic and secondary-school students, as well as international students studying in Zimbabwe. Parent/guardian involvement should be considered in the experience for younger students.
+HomeBridge is a Zimbabwe-first accommodation marketplace for **students, working professionals, families, individuals and anyone else looking for a place to live**. It is no longer limited to student accommodation.
 
-The marketplace should organize discovery around:
-- Zimbabwean cities and education destinations, with initial market focus on Harare, Bulawayo and Gweru.
-- Universities, colleges, polytechnics and secondary schools, including the campus or area served.
-- Private rooms, shared houses, student lodges, hostels, boarding accommodation, apartments and houses.
-- Transparent rent amounts, currencies and payment periods.
-- Clear location, campus distance, room availability, amenities, house rules and listing verification.
+The marketplace supports discovery across:
+- Rooms, shared houses, student lodges, hostels, boarding accommodation, apartments and houses.
+- Cities, suburbs, neighbourhoods and education destinations.
+- Transparent rent amounts, currencies and payment periods (monthly, weekly or per term where configured).
+- Location, room availability, amenities, house rules, property photographs and listing verification.
+- Optional education context such as nearby institutions, campuses and distance. Education details enrich a listing but are never required for a general rental search.
 
-The first implementation slice adds institution/campus search and landlord listing fields for nearby education institutions, campus/area, distance in kilometres, rent currency (USD, ZiG or ZAR), and rent period (month, week or term). These fields are stored in a separate PropertyLocalDetails table so the existing property table and existing records do not need destructive changes. Development and CI create this table through SQLAlchemy; production creates it through the reviewed SQL migration.
+New accommodation seekers select a profile category (student, working professional, family or individual) at registration. For backwards compatibility, all seeker categories continue to use the established renter workflow and internal `student` role while the profile category is stored separately. Existing student accounts and application, tenancy, agreement, maintenance and rent-payment records are preserved.
 
-This is a Zimbabwe-first product direction, not a claim that all Zimbabwean institutions or accommodation inventory have already been onboarded. Do not invent listings or imply a property is verified unless an admin has completed the review process.
+HomeBridge remains Zimbabwe-first; this does not imply that inventory exists in every city or that a listing is verified before the HomeBridge team completes its review. Do not invent listings or imply verification that has not occurred.
 
-HomeBridge is a student-focused accommodation marketplace and property-management platform for Zimbabwe.
-
+HomeBridge helps people find a place to call home, while landlords manage properties and the HomeBridge team oversees marketplace operations.
 ## Domain migration — 26 November 2026
 
 The Oracle development/test deployment now uses **https://homebridge.synexistech.co.zw**. DNS points to the existing Oracle host, HTTPS is enabled with a Let's Encrypt certificate, and the login endpoint was verified with HTTP 200. The former hostname, **https://homebridge.cyphertech.co.zw**, is retained as a permanent HTTPS redirect to the Synexis hostname so existing links continue to work. Keep the old DNS record and certificate while the redirect is required.
@@ -50,9 +49,9 @@ The latest completed milestone is **tenancy onboarding**. The landlord offer flo
 
 ### Completed and verified this week
 
-- Landlords can send a tenancy offer only when the student's application is approved and the viewing has been confirmed.
+- Landlords can send a tenancy offer only when the accommodation seeker's application is approved and the viewing has been confirmed.
 - Offers capture rent amount, currency (USD, ZiG or ZAR), rent period (month, week or term), optional room/unit label, start and end dates, and terms.
-- Students can review and accept or decline offers from **My Applications**.
+- Accommodation seekers can review and accept or decline offers from **My Applications**.
 - Accepting an offer creates the HomeBridge tenancy record; declining it does not create a tenancy.
 - Student and landlord tenancy pages are available and linked from their dashboards.
 - An application-linked unique tenancy reference prevents duplicate tenancy creation.
@@ -136,7 +135,7 @@ The following earlier notes are retained as historical context. Where they confl
 ### Verified deployment status at that time
 
 - The Oracle development/test site was reachable over HTTPS: https://homebridge.cyphertech.co.zw/properties
-- The public accommodation page rendered HomeBridge navigation, search filters, and the “Student Accommodation” heading.
+- The public accommodation page renders HomeBridge navigation and marketplace search. The current product direction is general accommodation, not student-only.
 - The page reported **0 listings** at the time. This can be expected when no properties meet the public listing criteria (published and available); it is not by itself proof that the database or listing route is broken.
 - The expected root behavior was a redirect to `/properties`.
 - The deployment uses the existing shared Oracle server. Do not rebuild the host or change shared Nginx/PostgreSQL/Docker settings without checking other services first.
@@ -147,7 +146,7 @@ The live page showed **“Lexxi Cipher”** in its visible navigation/account ar
 
 ### Earlier implementation and roadmap notes
 
-The project has foundations for student/landlord authentication, role-based dashboards, property submissions and image uploads, admin property review/publication, student applications, configurable student service and landlord listing fees, payment-proof submissions, admin payment review, inquiries, and platform settings.
+The project has foundations for accommodation seeker/landlord authentication, role-based dashboards, property submissions and image uploads, admin property review/publication, accommodation applications, configurable student service and landlord listing fees, payment-proof submissions, admin payment review, inquiries, and platform settings.
 
 The earlier Phase 3 finance/revenue work included an admin revenue page, date presets and custom date ranges, currency-separated summaries, payment history filters, student/landlord payment history, POST-based confirm/reject actions for pending payments, and separation of landlord account approval from listing-fee confirmation. Continue to verify those workflows on the live development instance before treating them as production-ready.
 
@@ -189,16 +188,16 @@ The development environment is intentionally separate from the public production
 
 ## Platform roles
 
-### Students
+### Accommodation seekers
 
-- Create a student account.
-- Browse published student accommodation.
+- Create an accommodation seeker account as a student, professional, family or individual.
+- Browse published accommodation listings for all renter categories.
 - Filter accommodation by type, city and available rooms.
 - View property photos, amenities, rules and availability.
 - Submit and track accommodation applications.
 - Withdraw pending applications.
 - Respond to tenancy offers, view tenancy details, and review or upload the signed copy of a rental agreement for an accepted tenancy (integrated in `main`; not yet deployed).
-- Submit student service-fee payment proof when a fee is configured.
+- Submit accommodation service-fee payment proof when a fee is configured.
 
 ### Landlords
 
@@ -221,7 +220,7 @@ The development environment is intentionally separate from the public production
 - Publish/unpublish verified properties.
 - Feature published properties.
 - Review platform payments and payment proof.
-- Configure student service and landlord listing fees.
+- Configure accommodation seeker service and landlord listing fees.
 - Manage inquiries and admin settings.
 - Review platform revenue and payment history.
 
@@ -250,13 +249,13 @@ The development environment is intentionally separate from the public production
 
 ### Applications and viewing coordination
 
-- Students can apply to published properties.
+- Accommodation seekers can apply to published properties.
 - Duplicate active applications are prevented.
-- Students can view application status.
+- Accommodation seekers can view application status.
 - Pending applications can be withdrawn.
 - Applications are tied to the student and property.
 - Landlords can propose viewing dates/times and meeting instructions after accepting an application.
-- Students can confirm or decline proposed viewings from **My Applications**.
+- Accommodation seekers can confirm or decline proposed viewings from **My Applications**.
 - Landlords can cancel proposed or confirmed viewings and issue a replacement proposal.
 - Viewing date/time input is interpreted as Zimbabwe local time (Africa/Harare).
 - A confirmed viewing does not itself create a tenancy.
@@ -265,7 +264,7 @@ The development environment is intentionally separate from the public production
 
 - Landlords can send tenancy offers for approved applications after viewing confirmation.
 - Offers record rent amount, currency (USD, ZiG or ZAR), period (month, week or term), optional room/unit, start/end dates and terms.
-- Students can accept or decline offers from **My Applications**.
+- Accommodation seekers can accept or decline offers from **My Applications**.
 - Accepting creates a tenancy record; declining does not.
 - Student and landlord tenancy pages are linked from their dashboards.
 - A printable draft rental agreement preview is available to both parties through role-checked routes in the integrated `main` release; it is not yet deployed and does not capture electronic signatures.
@@ -280,11 +279,11 @@ The tenancy migration was applied to the development database on 2 November 2026
 
 The platform supports configurable fees rather than hard-coded business prices:
 
-`Student → Student Service Fee → HomeBridge`
+`Accommodation Seeker → Service Fee → HomeBridge`
 
 `Landlord → Listing / Management Fee → HomeBridge`
 
-Admin settings support student service fee, student service-fee currency, and landlord listing fee. Payment records support confirmation/rejection workflows and uploaded payment proof.
+Admin settings support accommodation seeker service fee, accommodation seeker service-fee currency, and landlord listing fee. Payment records support confirmation/rejection workflows and uploaded payment proof.
 
 ## Database
 
