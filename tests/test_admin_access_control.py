@@ -230,4 +230,4 @@ def test_rbac_validation_fails_closed_for_unassigned_admin(admin_app):
 
         with pytest.raises(RuntimeError, match="no staff role assignment"):
             validate_admin_access_control()
-\n
+
