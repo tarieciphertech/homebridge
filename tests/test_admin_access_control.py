@@ -217,3 +217,17 @@ def test_audit_migration_is_additive_and_documents_manual_deployment():
     assert "must_change_password" in migration
     assert "WHERE u.role = 'admin'" in migration
     assert "ON CONFLICT" in migration
+
+def test_rbac_validation_fails_closed_for_unassigned_admin(admin_app):
+    from app.admin_access import validate_admin_access_control
+    from app.models import AdminUserRole, User, db
+
+    with admin_app.app_context():
+        root = User.query.filter_by(email="root@test.homebridge").one()
+        assignment = AdminUserRole.query.filter_by(user_id=root.id).one()
+        db.session.delete(assignment)
+        db.session.commit()
+
+        with pytest.raises(RuntimeError, match="no staff role assignment"):
+            validate_admin_access_control()
+\n
