@@ -23,10 +23,15 @@ def home():
 
 @public.route("/properties")
 def properties():
-    property_type = request.args.get("property_type", "")
-    city = request.args.get("city", "")
+    property_type = request.args.get("property_type", "").strip()
+    city = request.args.get("city", "").strip()
     rooms = request.args.get("rooms", type=int)
-    institution = request.args.get("institution", "").strip()
+    # Keep accepting the old institution parameter for bookmarked student searches.
+    keyword = (request.args.get("q") or request.args.get("institution") or "").strip()
+    min_price = request.args.get("min_price", type=float)
+    max_price = request.args.get("max_price", type=float)
+    rent_period = request.args.get("rent_period", "").strip()
+
     query = Property.query.filter_by(is_published=True, availability_status="available")
     if property_type:
         query = query.filter_by(property_type=property_type)
@@ -34,14 +39,27 @@ def properties():
         query = query.filter(Property.city.ilike(f"%{city}%"))
     if rooms:
         query = query.filter(Property.available_rooms >= rooms)
-    if institution:
-        query = query.outerjoin(PropertyLocalDetails).filter(or_(
-            PropertyLocalDetails.institution_name.ilike(f"%{institution}%"),
-            PropertyLocalDetails.campus_name.ilike(f"%{institution}%"),
-            Property.city.ilike(f"%{institution}%"),
-            Property.location.ilike(f"%{institution}%"),
-            Property.title.ilike(f"%{institution}%")
+    if min_price is not None and min_price >= 0:
+        query = query.filter(Property.price >= min_price)
+    if max_price is not None and max_price >= 0:
+        query = query.filter(Property.price <= max_price)
+    if rent_period:
+        query = query.outerjoin(PropertyLocalDetails).filter(PropertyLocalDetails.rent_period == rent_period)
+    if keyword:
+        if not rent_period:
+            query = query.outerjoin(PropertyLocalDetails)
+        pattern = f"%{keyword}%"
+        query = query.filter(or_(
+            Property.title.ilike(pattern),
+            Property.description.ilike(pattern),
+            Property.location.ilike(pattern),
+            Property.city.ilike(pattern),
+            Property.country.ilike(pattern),
+            Property.property_type.ilike(pattern),
+            PropertyLocalDetails.institution_name.ilike(pattern),
+            PropertyLocalDetails.campus_name.ilike(pattern),
         )).distinct()
+
     all_properties = query.order_by(Property.is_featured.desc(), Property.submitted_at.desc()).all()
     cities = [c[0] for c in db.session.query(Property.city).filter_by(is_published=True).distinct().all() if c[0]]
     return render_template(
@@ -51,9 +69,12 @@ def properties():
         property_type=property_type,
         city=city,
         rooms=rooms or "",
-        institution=institution,
+        institution=keyword,
+        keyword=keyword,
+        min_price="" if min_price is None else min_price,
+        max_price="" if max_price is None else max_price,
+        rent_period=rent_period,
     )
-
 
 @public.route("/properties/<int:property_id>")
 def property_detail(property_id):
