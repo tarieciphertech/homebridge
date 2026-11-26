@@ -548,3 +548,87 @@ def test_production_startup_requires_explicit_private_upload_folder(monkeypatch)
 
     with pytest.raises(RuntimeError, match="PRIVATE_UPLOAD_FOLDER"):
         create_app()
+
+
+@pytest.mark.parametrize("account_type", ["student", "professional", "family", "individual"])
+def test_all_accommodation_seeker_categories_register_into_compatible_renter_workflow(app, account_type):
+    from app.models import User, db
+
+    client = app.test_client()
+    response = client.post("/register", data={
+        "role": account_type,
+        "name": f"Test {account_type.title()}",
+        "email": f"{account_type}@marketplace.test",
+        "phone": "+263700000000",
+        "password": "test-password-123",
+    })
+    assert response.status_code == 302
+    with app.app_context():
+        user = User.query.filter_by(email=f"{account_type}@marketplace.test").one()
+        assert user.role == "student"
+        assert user.seeker_type == account_type
+        assert user.is_approved is True
+    dashboard = client.get("/dashboard")
+    assert dashboard.status_code == 302
+    assert dashboard.location.endswith("/student/dashboard")
+
+
+def test_legacy_student_registration_remains_supported(app):
+    from app.models import User
+
+    response = app.test_client().post("/register", data={
+        "role": "student",
+        "name": "Legacy Student",
+        "email": "legacy-student@marketplace.test",
+        "password": "test-password-123",
+    })
+    assert response.status_code == 302
+    with app.app_context():
+        user = User.query.filter_by(email="legacy-student@marketplace.test").one()
+        assert user.role == "student"
+        assert user.seeker_type == "student"
+
+
+def test_general_marketplace_keyword_and_price_filters(app):
+    from app.models import Property, User, db
+
+    with app.app_context():
+        landlord = User(
+            name="Marketplace Landlord",
+            email="marketplace-landlord@test.homebridge",
+            password=generate_password_hash("landlord-password-123"),
+            role="landlord",
+            is_approved=True,
+        )
+        db.session.add(landlord)
+        db.session.flush()
+        listing = Property(
+            landlord_id=landlord.id,
+            title="Avondale family apartment",
+            description="Two bedroom apartment close to shops",
+            property_type="apartment",
+            price=450,
+            location="Avondale",
+            city="Harare",
+            country="Zimbabwe",
+            bedrooms=2,
+            is_verified=True,
+            is_published=True,
+            availability_status="available",
+        )
+        db.session.add(listing)
+        db.session.commit()
+        listing_id = listing.id
+
+    client = app.test_client()
+    matching = client.get("/properties?q=Avondale&min_price=400&max_price=500")
+    assert matching.status_code == 200
+    assert b"Avondale family apartment" in matching.data
+
+    outside_budget = client.get("/properties?q=Avondale&min_price=500")
+    assert outside_budget.status_code == 200
+    assert b"Avondale family apartment" not in outside_budget.data
+
+    old_bookmark = client.get("/properties?institution=Avondale")
+    assert old_bookmark.status_code == 200
+    assert b"Avondale family apartment" in old_bookmark.data
