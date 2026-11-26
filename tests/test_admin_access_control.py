@@ -188,7 +188,7 @@ def test_suspending_staff_invalidates_existing_session(admin_app):
     assert "/login" in denied.location
 
 
-def test_last_super_admin_cannot_be_suspended_or_demoted(admin_app):
+def test_super_admin_cannot_change_own_role_or_suspend_own_account(admin_app):
     root = _login(admin_app, "root@test.homebridge", "test-root-password-123456")
     with admin_app.app_context():
         from app.models import User
