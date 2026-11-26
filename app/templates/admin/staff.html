@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Administrator Staff · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div><div class="text-uppercase small fw-bold text-muted">Platform security</div><h1 class="mb-1">Administrator Staff</h1><p class="text-muted mb-0">Manage staff access, operational roles and account status.</p></div>
+    <a class="btn btn-outline-light" href="{{ url_for('admin_bp.dashboard') }}">Dashboard</a>
+  </div>
+
+  {% if admin_can('staff.manage') %}
+  <div class="card p-4 mb-4">
+    <h4 class="mb-1">Create staff account</h4>
+    <p class="text-muted small">New staff accounts receive a temporary password and must change it at first login. Use a unique password of at least 16 characters.</p>
+    <form method="post" action="{{ url_for('admin_bp.create_staff') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-md-4"><label class="form-label">Full name</label><input class="form-control" name="name" maxlength="150" required></div>
+        <div class="col-md-4"><label class="form-label">Email</label><input class="form-control" type="email" name="email" maxlength="120" required></div>
+        <div class="col-md-4"><label class="form-label">Phone</label><input class="form-control" name="phone" maxlength="30"></div>
+        <div class="col-md-4"><label class="form-label">Initial password</label><input class="form-control" type="password" name="password" minlength="16" autocomplete="new-password" required></div>
+        <div class="col-md-4"><label class="form-label">Administrator role</label><select class="form-select" name="role_key" required>{% for role in roles %}<option value="{{ role.key }}">{{ role.name }}</option>{% endfor %}</select></div>
+        <div class="col-md-4 d-flex align-items-end"><button class="btn btn-gold w-100" type="submit"><i class="fa-solid fa-user-plus me-2"></i>Create staff account</button></div>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="card p-3 p-md-4">
+    <div class="d-flex justify-content-between align-items-center mb-3"><h4 class="mb-0">Staff directory</h4><span class="badge text-bg-secondary">{{ staff_members|length }} accounts</span></div>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead><tr><th>Staff member</th><th>Role</th><th>Status</th><th>Security</th>{% if admin_can('staff.manage') %}<th>Actions</th>{% endif %}</tr></thead>
+        <tbody>
+        {% for member in staff_members %}
+          {% set assigned_role = roles_by_user.get(member.id) %}
+          <tr>
+            <td><strong>{{ member.name }}</strong><div class="small text-muted">{{ member.email }}{% if member.phone %} · {{ member.phone }}{% endif %}</div></td>
+            <td>{{ assigned_role.name if assigned_role else 'Unassigned' }}</td>
+            <td>{% if member.is_active_account %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-danger">Suspended</span>{% endif %}</td>
+            <td>{% if member.must_change_password %}<span class="badge bg-warning text-dark">Password change required</span>{% else %}<span class="badge bg-light text-dark">Password set</span>{% endif %}</td>
+            {% if admin_can('staff.manage') %}
+            <td>
+              {% if member.id != current_user.id %}
+              <div class="d-flex flex-wrap gap-2">
+                <form method="post" action="{{ url_for('admin_bp.change_staff_role', user_id=member.id) }}" class="d-flex gap-1">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <select class="form-select form-select-sm" name="role_key" aria-label="Role for {{ member.name }}">{% for role in roles %}<option value="{{ role.key }}" {% if assigned_role and assigned_role.key == role.key %}selected{% endif %}>{{ role.name }}</option>{% endfor %}</select>
+                  <button class="btn btn-sm btn-outline-dark" type="submit">Save</button>
+                </form>
+                <form method="post" action="{{ url_for('admin_bp.toggle_staff_status', user_id=member.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm {{ 'btn-outline-danger' if member.is_active_account else 'btn-outline-success' }}" type="submit">{{ 'Suspend' if member.is_active_account else 'Reactivate' }}</button>
+                </form>
+              </div>
+              {% else %}<span class="small text-muted">Your account</span>{% endif %}
+            </td>
+            {% endif %}
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-muted py-4 text-center">No administrator staff accounts found.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
