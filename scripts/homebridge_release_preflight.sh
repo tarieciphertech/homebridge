@@ -70,10 +70,21 @@ try:
     else:
         inspector = inspect(create_engine(url))
         tables = set(inspector.get_table_names())
-        required = {"property_local_details", "rental_agreement", "notification"}
+        required = {
+            "property_local_details", "rental_agreement", "notification",
+            "admin_role", "admin_permission", "admin_role_permission",
+            "admin_user_role", "admin_audit_log",
+        }
         missing = sorted(required - tables)
         print("Database connection: successful")
         print("Required release tables:", "present" if not missing else "MISSING " + ", ".join(missing))
+        if "user" in tables:
+            user_columns = {column["name"] for column in inspector.get_columns("user")}
+            expected_user_columns = {"must_change_password", "seeker_type"}
+            absent_user_columns = sorted(expected_user_columns - user_columns)
+            print("User release columns:", "present" if not absent_user_columns else "MISSING " + ", ".join(absent_user_columns))
+        else:
+            print("User table: MISSING")
         for table in ("rent_payment", "maintenance_request"):
             if table in tables:
                 columns = {column["name"] for column in inspector.get_columns(table)}
