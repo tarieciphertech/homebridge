@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Property Finance · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div><p class="hb-kicker mb-2">Landlord workspace</p><h1>Property Finance</h1><p class="text-muted mb-0">Manage rent, deposits, utilities and other charges directly with your tenants. HomeBridge does not collect or hold these funds.</p></div>
+    <a class="btn btn-outline-light" href="{{ url_for('landlord.dashboard') }}">Back to dashboard</a>
+  </div>
+  <div class="alert alert-info">Only create charges agreed with the tenant. Payment submissions remain pending until you review them. Confirming a record documents your review; it does not independently verify a bank transfer.</div>
+  <div class="card p-4 mb-4">
+    <h2 class="h4">Create a property charge</h2>
+    {% for tenancy in tenancies %}
+    <form method="post" action="{{ url_for('landlord.create_property_charge', tenancy_id=tenancy.id) }}" class="border-top py-3 row g-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="col-12"><strong>{{ tenancy.property.title }}</strong> · {{ tenancy.student.name }} <span class="text-muted small">({{ tenancy.student.email }})</span></div>
+      <div class="col-md-3"><label class="form-label">Charge type</label><select class="form-select" name="charge_type" required><option value="rent">Rent</option><option value="security_deposit">Security deposit</option><option value="utilities">Utilities</option><option value="maintenance">Maintenance</option><option value="other">Other agreed charge</option></select></div>
+      <div class="col-md-3"><label class="form-label">Title</label><input class="form-control" name="title" maxlength="180" placeholder="e.g. December rent" required></div>
+      <div class="col-md-2"><label class="form-label">Amount ({{ tenancy.rent_currency }})</label><input class="form-control" type="number" name="amount" min="0.01" max="9999999999.99" step="0.01" required></div>
+      <div class="col-md-2"><label class="form-label">Due date</label><input class="form-control" type="date" name="due_date" required></div>
+      <div class="col-md-2"><label class="form-label">Currency</label><input class="form-control" value="{{ tenancy.rent_currency }}" readonly><input type="hidden" name="currency" value="{{ tenancy.rent_currency }}"></div>
+      <div class="col-12"><label class="form-label">Description / agreement details</label><input class="form-control" name="description" maxlength="4000" placeholder="Optional details for the tenant"></div>
+      <div class="col-12"><button class="btn btn-gold" type="submit">Create charge and notify tenant</button></div>
+    </form>
+    {% else %}<p class="text-muted mb-0">You need an active tenancy before you can create property charges.</p>{% endfor %}
+  </div>
+  <div class="card p-4 mb-4">
+    <h2 class="h4">Charges and balances</h2>
+    {% for charge in charges %}
+    <div class="border-top py-3">
+      <div class="d-flex justify-content-between flex-wrap gap-2"><div><strong>{{ charge.title }}</strong> · {{ charge.property.title }}</div><span class="badge {% if charge.payment_status=='paid' %}text-bg-success{% elif charge.payment_status=='partially paid' %}text-bg-info{% else %}text-bg-warning{% endif %}">{{ charge.payment_status|title }}</span></div>
+      <div class="small text-muted">{{ charge.tenant.name }} · {{ charge.charge_type|replace('_',' ')|title }} · Due {{ charge.due_date.strftime('%d %b %Y') }}</div>
+      <div class="mt-1">{{ charge.currency }} {{ '%.2f'|format(charge.amount) }} charged · {{ '%.2f'|format(charge.paid_amount) }} confirmed · <strong>{{ '%.2f'|format(charge.balance_due) }} outstanding</strong>{% if charge.pending_amount %} · {{ '%.2f'|format(charge.pending_amount) }} awaiting review{% endif %}</div>
+      {% if charge.charge_type=='security_deposit' and charge.paid_amount > 0 %}
+      <form method="post" action="{{ url_for('landlord.record_deposit_refund', charge_id=charge.id) }}" class="row g-2 mt-2"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="col-md-3"><input class="form-control" type="number" name="amount" min="0.01" max="{{ charge.paid_amount }}" step="0.01" placeholder="Refund amount" required></div><div class="col-md-3"><select class="form-select" name="method"><option value="bank_transfer">Bank transfer</option><option value="cash">Cash</option><option value="mobile_money">Mobile money</option><option value="other">Other</option></select></div><div class="col-md-3"><input class="form-control" name="reference" maxlength="100" placeholder="Refund reference"></div><div class="col-md-3"><button class="btn btn-outline-success w-100" type="submit">Record deposit refund</button></div><div class="col-12"><input class="form-control" name="notes" maxlength="2000" placeholder="Refund note (optional)"></div></form>
+      {% endif %}
+    </div>
+    {% else %}<p class="text-muted mb-0">No property charges have been created yet.</p>{% endfor %}
+  </div>
+  <div class="card p-4">
+    <h2 class="h4">Tenant transaction submissions</h2>
+    {% for transaction in transactions %}
+    <div class="border-top py-3">
+      <div class="d-flex justify-content-between flex-wrap gap-2"><strong>{{ transaction.charge.title }} · {{ transaction.property.title }}</strong><span class="badge {% if transaction.status=='confirmed' %}text-bg-success{% elif transaction.status=='rejected' %}text-bg-danger{% else %}text-bg-warning{% endif %}">{{ transaction.status|title }}</span></div>
+      <div>{{ transaction.tenant.name }} · {{ transaction.currency }} {{ transaction.amount }} · {{ transaction.method|replace('_',' ')|title }}{% if transaction.reference %} · Ref {{ transaction.reference }}{% endif %}</div>
+      <div class="small text-muted">Submitted {{ transaction.submitted_at.strftime('%d %b %Y %H:%M') }}</div>
+      {% if transaction.proof_file %}<a class="btn btn-sm btn-outline-dark mt-2" href="{{ url_for('landlord.download_property_transaction_proof', transaction_id=transaction.id) }}">View payment proof</a>{% endif %}
+      {% if transaction.transaction_type=='payment' and transaction.status=='pending' %}
+      <form method="post" action="{{ url_for('landlord.review_property_transaction', transaction_id=transaction.id) }}" class="row g-2 mt-2"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="col-md-8"><input class="form-control" name="review_notes" maxlength="5000" placeholder="Review note (optional)"></div><div class="col-md-2"><button class="btn btn-success w-100" name="decision" value="confirmed">Confirm</button></div><div class="col-md-2"><button class="btn btn-outline-danger w-100" name="decision" value="rejected">Reject</button></div></form>
+      {% elif transaction.review_notes %}<p class="small text-muted mt-2 mb-0">{{ transaction.review_notes }}</p>{% endif %}
+    </div>
+    {% else %}<p class="text-muted mb-0">No tenant transaction submissions yet.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}
