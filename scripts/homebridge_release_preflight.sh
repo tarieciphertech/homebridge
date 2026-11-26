@@ -7,7 +7,8 @@ ROOT="/opt/homebridge"
 APP="$ROOT/app"
 COMPOSE="$ROOT/docker-compose.yml"
 CONTAINER="homebridge"
-PUBLIC_URL="https://homebridge.cyphertech.co.zw"
+PUBLIC_URL="https://homebridge.synexistech.co.zw"
+LEGACY_URL="https://homebridge.cyphertech.co.zw"
 
 section() { printf '\n=== %s ===\n' "$1"; }
 status() { printf '%-34s %s\n' "$1" "$2"; }
@@ -97,6 +98,13 @@ for target in "http://127.0.0.1:5001/properties" "$PUBLIC_URL/properties"; do
   status "$target" "$code"
 done
 
+section "Legacy domain redirects"
+for scheme in http https; do
+  target="${scheme}://${LEGACY_URL#https://}/properties"
+  result="$(curl --silent --show-error --output /dev/null --max-time 12 --write-out '%{http_code} %{redirect_url}' "$target" 2>/dev/null || echo unavailable)"
+  status "$target" "$result"
+done
+
 section "Nginx"
 if command -v nginx >/dev/null 2>&1; then
   sudo nginx -t 2>&1 || true
@@ -104,7 +112,7 @@ if command -v nginx >/dev/null 2>&1; then
     [ -d "$dir" ] || continue
     for file in "$dir"/*; do
       [ -f "$file" ] || continue
-      if sudo grep -q 'homebridge.cyphertech.co.zw' "$file" 2>/dev/null; then
+      if sudo grep -Eq 'homebridge\.(cyphertech|synexistech)\.co\.zw' "$file" 2>/dev/null; then
         echo "HomeBridge Nginx file: $file"
         sudo grep -nE 'server_name|location|proxy_pass|root|alias' "$file" || true
       fi
