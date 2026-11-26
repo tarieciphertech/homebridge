@@ -137,6 +137,44 @@ def seed_admin_access_control():
     db.session.commit()
 
 
+def validate_admin_access_control():
+    """Fail production startup if the reviewed RBAC migration is missing or incomplete."""
+    role_rows = {role.key: role for role in AdminRole.query.all()}
+    permission_keys = {permission.key for permission in AdminPermission.query.all()}
+    missing_roles = set(ROLE_DEFINITIONS) - set(role_rows)
+    missing_permissions = set(PERMISSION_DEFINITIONS) - permission_keys
+    if missing_roles or missing_permissions:
+        raise RuntimeError(
+            "Administrator access-control migration is incomplete. "
+            f"Missing roles: {sorted(missing_roles)}; "
+            f"missing permissions: {sorted(missing_permissions)}."
+        )
+
+    for role_key, expected_permissions in ROLE_PERMISSION_KEYS.items():
+        role = role_rows[role_key]
+        granted = {
+            permission.key
+            for permission in AdminPermission.query.join(
+                AdminRolePermission, AdminRolePermission.permission_id == AdminPermission.id
+            ).filter(AdminRolePermission.role_id == role.id).all()
+        }
+        missing_grants = expected_permissions - granted
+        if missing_grants:
+            raise RuntimeError(
+                f"Administrator role '{role_key}' is missing permissions: {sorted(missing_grants)}."
+            )
+
+    assigned_user_ids = db.session.query(AdminUserRole.user_id)
+    unassigned_count = User.query.filter(
+        User.role == "admin", ~User.id.in_(assigned_user_ids)
+    ).count()
+    if unassigned_count:
+        raise RuntimeError(
+            f"{unassigned_count} administrator account(s) have no staff role assignment. "
+            "Review the administrator access-control migration before startup."
+        )
+
+
 def assign_admin_role(user, role_key, assigned_by_id=None):
     role = AdminRole.query.filter_by(key=role_key).first()
     if role is None:
