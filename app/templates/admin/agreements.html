@@ -19,7 +19,7 @@
             <td>{{ agreement.student.name }}</td>
             <td><span class="badge bg-secondary">{{ agreement.status|replace('_',' ')|title }}</span></td>
             <td>{{ agreement.updated_at.strftime('%d %b %Y %H:%M') }}</td>
-            <td>{% if agreement.signed_document_path %}<a href="{{ url_for('admin_bp.download_signed_agreement', agreement_id=agreement.id) }}">Download PDF</a>{% else %}<span class="text-muted">Not uploaded</span>{% endif %}</td>
+            <td>{% if agreement.signed_document_path and admin_can('agreements.documents.download') %}<a href="{{ url_for('admin_bp.download_signed_agreement', agreement_id=agreement.id) }}">Download PDF</a>{% elif agreement.signed_document_path %}<span class="text-muted">Restricted</span>{% else %}<span class="text-muted">Not uploaded</span>{% endif %}</td>
           </tr>
         {% else %}
           <tr><td colspan="7" class="text-muted text-center py-4">No rental agreement records have been prepared yet.</td></tr>
