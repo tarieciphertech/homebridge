@@ -108,7 +108,7 @@ def submit_property_charge_payment(charge_id):
     db.session.add(transaction)
     create_in_app_notification(
         charge.landlord_id, "property_transaction_submitted", "Tenant payment submitted",
-        f"{current_user.name} submitted {charge.currency} {amount} for {charge.title} at {charge.property.title}.",
+        f"{current_user.name} submitted {charge.currency} {amount} for {charge.title} at {charge.property_listing.title}.",
         url_for("landlord.finance"), current_user.id,
     )
     db.session.commit()
