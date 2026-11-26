@@ -1,7 +1,7 @@
 # HomeBridge Client Launch Readiness
 
 **Status:** Not yet approved for client onboarding  
-**Environment:** Oracle development/test deployment at https://homebridge.cyphertech.co.zw  
+**Environment:** Oracle development/test deployment at https://homebridge.synexistech.co.zw (verified 26 November 2026; the former `homebridge.cyphertech.co.zw` hostname permanently redirects here).  
 **Production domain:** https://homebridge.co.zw (do not assume production deployment is active)  
 **Product scope:** Zimbabwe-first student accommodation marketplace
 
