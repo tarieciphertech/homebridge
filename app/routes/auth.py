@@ -18,9 +18,9 @@ def register():
         email = request.form.get("email", "").strip().lower()
         phone = request.form.get("phone", "").strip()
         password = request.form.get("password", "")
-        role = request.form.get("role", "student").strip().lower()
+        account_type = request.form.get("role", "student").strip().lower()
 
-        if role not in {"student", "landlord"}:
+        if account_type not in {"student", "professional", "family", "individual", "landlord"}:
             flash("Please select a valid account type.", "danger")
             return redirect(url_for("auth.register"))
         if not name or not email:
@@ -33,25 +33,28 @@ def register():
             flash("Email already registered. Please login.", "danger")
             return redirect(url_for("auth.login"))
 
+        # All seeker categories retain the established student role internally.
+        is_landlord = account_type == "landlord"
         user = User(
             name=name,
             email=email,
             phone=phone,
             password=generate_password_hash(password),
-            role=role,
-            is_approved=(role == "student"),
+            role="landlord" if is_landlord else "student",
+            seeker_type=None if is_landlord else account_type,
+            is_approved=not is_landlord,
         )
         db.session.add(user)
         db.session.commit()
 
-        if role == "landlord":
+        if is_landlord:
             try:
                 notify_new_landlord(user)
             except Exception:
                 pass
             flash("Landlord account created. Your account will be reviewed before you can publish properties.", "success")
         else:
-            flash("Student account created successfully.", "success")
+            flash("Accommodation seeker account created successfully.", "success")
 
         login_user(user)
         return redirect(url_for("auth.dashboard"))
