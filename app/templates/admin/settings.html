@@ -10,8 +10,8 @@
   <form method="post" class="card p-4"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <h4>Platform Fees</h4>
     <div class="row g-3">
-      <div class="col-md-4"><label class="form-label">Student service fee</label><input class="form-control" type="number" min="0" step="0.01" name="student_service_fee" value="{{ student_service_fee }}"><div class="form-text">Set to 0 to disable the student fee gate.</div></div>
-      <div class="col-md-4"><label class="form-label">Student fee currency</label><input class="form-control" maxlength="10" name="student_service_fee_currency" value="{{ student_service_fee_currency }}"></div>
+      <div class="col-md-4"><label class="form-label">Accommodation seeker service fee</label><input class="form-control" type="number" min="0" step="0.01" name="student_service_fee" value="{{ student_service_fee }}"><div class="form-text">Set to 0 to disable the accommodation application fee gate.</div></div>
+      <div class="col-md-4"><label class="form-label">Seeker fee currency</label><input class="form-control" maxlength="10" name="student_service_fee_currency" value="{{ student_service_fee_currency }}"></div>
       <div class="col-md-4"><label class="form-label">Landlord listing fee</label><input class="form-control" type="number" min="0" step="0.01" name="landlord_listing_fee" value="{{ landlord_listing_fee }}"></div>
     </div>
     <div class="mt-4"><button class="btn btn-gold" type="submit">Save Settings</button></div>
