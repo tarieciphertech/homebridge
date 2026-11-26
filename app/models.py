@@ -16,10 +16,17 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), nullable=False, default="student", index=True)
     is_approved = db.Column(db.Boolean, default=False, nullable=False)
     is_active_account = db.Column(db.Boolean, default=True, nullable=False)
+    must_change_password = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     properties = db.relationship("Property", back_populates="landlord", foreign_keys="Property.landlord_id")
     payments = db.relationship("Payment", back_populates="user", foreign_keys="Payment.user_id")
+    admin_role_assignments = db.relationship("AdminUserRole", back_populates="user", foreign_keys="AdminUserRole.user_id")
+
+    @property
+    def is_active(self):
+        # Flask-Login checks this on every request, including existing sessions.
+        return bool(self.is_active_account)
 
 
 class PlatformSetting(db.Model):
@@ -271,3 +278,77 @@ class Notification(db.Model):
 
     recipient = db.relationship("User", foreign_keys=[user_id], backref=db.backref("notifications", lazy="dynamic"))
     actor = db.relationship("User", foreign_keys=[actor_id])
+
+class AdminRole(db.Model):
+    """One of the fixed operational roles available to HomeBridge staff."""
+    __tablename__ = "admin_role"
+
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(40), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(80), nullable=False)
+    description = db.Column(db.String(255), nullable=False)
+    is_system = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    permissions = db.relationship(
+        "AdminRolePermission", back_populates="role", cascade="all, delete-orphan"
+    )
+    assignments = db.relationship("AdminUserRole", back_populates="role")
+
+
+class AdminPermission(db.Model):
+    """Named capability checked by administrator route guards."""
+    __tablename__ = "admin_permission"
+
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.String(255), nullable=False)
+
+    roles = db.relationship(
+        "AdminRolePermission", back_populates="permission", cascade="all, delete-orphan"
+    )
+
+
+class AdminRolePermission(db.Model):
+    __tablename__ = "admin_role_permission"
+
+    role_id = db.Column(db.Integer, db.ForeignKey("admin_role.id", ondelete="CASCADE"), primary_key=True)
+    permission_id = db.Column(db.Integer, db.ForeignKey("admin_permission.id", ondelete="CASCADE"), primary_key=True)
+
+    role = db.relationship("AdminRole", back_populates="permissions")
+    permission = db.relationship("AdminPermission", back_populates="roles")
+
+
+class AdminUserRole(db.Model):
+    """A staff administrator's assigned operational role."""
+    __tablename__ = "admin_user_role"
+
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), primary_key=True)
+    role_id = db.Column(db.Integer, db.ForeignKey("admin_role.id"), nullable=False, index=True)
+    assigned_by_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL"))
+    assigned_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    user = db.relationship("User", back_populates="admin_role_assignments", foreign_keys=[user_id])
+    role = db.relationship("AdminRole", back_populates="assignments")
+    assigned_by = db.relationship("User", foreign_keys=[assigned_by_id])
+
+
+class AdminAuditLog(db.Model):
+    """Append-only application audit events for privileged administrator actions."""
+    __tablename__ = "admin_audit_log"
+
+    id = db.Column(db.Integer, primary_key=True)
+    actor_user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL"), index=True)
+    action = db.Column(db.String(100), nullable=False, index=True)
+    target_type = db.Column(db.String(80), nullable=False, index=True)
+    target_id = db.Column(db.String(80), index=True)
+    summary = db.Column(db.String(500), nullable=False)
+    before_state = db.Column(db.Text)
+    after_state = db.Column(db.Text)
+    ip_address = db.Column(db.String(64))
+    user_agent = db.Column(db.String(300))
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+    actor = db.relationship("User", foreign_keys=[actor_user_id])
+
