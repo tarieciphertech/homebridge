@@ -639,3 +639,14 @@ def test_general_accommodation_seeker_migration_is_additive():
     assert 'ADD COLUMN IF NOT EXISTS seeker_type VARCHAR(30)' in migration
     assert "WHERE role = 'student' AND seeker_type IS NULL" in migration
     assert "CREATE INDEX IF NOT EXISTS ix_user_seeker_type" in migration
+
+
+def test_release_preflight_checks_admin_and_marketplace_schema():
+    script = Path("scripts/homebridge_release_preflight.sh").read_text(encoding="utf-8")
+    for table in (
+        "admin_role", "admin_permission", "admin_role_permission",
+        "admin_user_role", "admin_audit_log",
+    ):
+        assert table in script
+    assert '"seeker_type"' in script
+    assert '"must_change_password"' in script
