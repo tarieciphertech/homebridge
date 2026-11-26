@@ -632,3 +632,10 @@ def test_general_marketplace_keyword_and_price_filters(app):
     old_bookmark = client.get("/properties?institution=Avondale")
     assert old_bookmark.status_code == 200
     assert b"Avondale family apartment" in old_bookmark.data
+
+ 
+def test_general_accommodation_seeker_migration_is_additive():
+    migration = Path("migrations/20261127_general_accommodation_seekers.sql").read_text(encoding="utf-8")
+    assert 'ADD COLUMN IF NOT EXISTS seeker_type VARCHAR(30)' in migration
+    assert "WHERE role = 'student' AND seeker_type IS NULL" in migration
+    assert "CREATE INDEX IF NOT EXISTS ix_user_seeker_type" in migration
