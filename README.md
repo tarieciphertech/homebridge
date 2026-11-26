@@ -49,9 +49,9 @@ The latest completed milestone is **tenancy onboarding**. The landlord offer flo
 
 ### Completed and verified this week
 
-- Landlords can send a tenancy offer only when the student's application is approved and the viewing has been confirmed.
+- Landlords can send a tenancy offer only when the accommodation seeker's application is approved and the viewing has been confirmed.
 - Offers capture rent amount, currency (USD, ZiG or ZAR), rent period (month, week or term), optional room/unit label, start and end dates, and terms.
-- Students can review and accept or decline offers from **My Applications**.
+- Accommodation seekers can review and accept or decline offers from **My Applications**.
 - Accepting an offer creates the HomeBridge tenancy record; declining it does not create a tenancy.
 - Student and landlord tenancy pages are available and linked from their dashboards.
 - An application-linked unique tenancy reference prevents duplicate tenancy creation.
@@ -146,7 +146,7 @@ The live page showed **“Lexxi Cipher”** in its visible navigation/account ar
 
 ### Earlier implementation and roadmap notes
 
-The project has foundations for student/landlord authentication, role-based dashboards, property submissions and image uploads, admin property review/publication, student applications, configurable student service and landlord listing fees, payment-proof submissions, admin payment review, inquiries, and platform settings.
+The project has foundations for accommodation seeker/landlord authentication, role-based dashboards, property submissions and image uploads, admin property review/publication, accommodation applications, configurable student service and landlord listing fees, payment-proof submissions, admin payment review, inquiries, and platform settings.
 
 The earlier Phase 3 finance/revenue work included an admin revenue page, date presets and custom date ranges, currency-separated summaries, payment history filters, student/landlord payment history, POST-based confirm/reject actions for pending payments, and separation of landlord account approval from listing-fee confirmation. Continue to verify those workflows on the live development instance before treating them as production-ready.
 
@@ -197,7 +197,7 @@ The development environment is intentionally separate from the public production
 - Submit and track accommodation applications.
 - Withdraw pending applications.
 - Respond to tenancy offers, view tenancy details, and review or upload the signed copy of a rental agreement for an accepted tenancy (integrated in `main`; not yet deployed).
-- Submit student service-fee payment proof when a fee is configured.
+- Submit accommodation service-fee payment proof when a fee is configured.
 
 ### Landlords
 
@@ -220,7 +220,7 @@ The development environment is intentionally separate from the public production
 - Publish/unpublish verified properties.
 - Feature published properties.
 - Review platform payments and payment proof.
-- Configure student service and landlord listing fees.
+- Configure accommodation seeker service and landlord listing fees.
 - Manage inquiries and admin settings.
 - Review platform revenue and payment history.
 
@@ -251,11 +251,11 @@ The development environment is intentionally separate from the public production
 
 - Accommodation seekers can apply to published properties.
 - Duplicate active applications are prevented.
-- Students can view application status.
+- Accommodation seekers can view application status.
 - Pending applications can be withdrawn.
 - Applications are tied to the student and property.
 - Landlords can propose viewing dates/times and meeting instructions after accepting an application.
-- Students can confirm or decline proposed viewings from **My Applications**.
+- Accommodation seekers can confirm or decline proposed viewings from **My Applications**.
 - Landlords can cancel proposed or confirmed viewings and issue a replacement proposal.
 - Viewing date/time input is interpreted as Zimbabwe local time (Africa/Harare).
 - A confirmed viewing does not itself create a tenancy.
@@ -264,7 +264,7 @@ The development environment is intentionally separate from the public production
 
 - Landlords can send tenancy offers for approved applications after viewing confirmation.
 - Offers record rent amount, currency (USD, ZiG or ZAR), period (month, week or term), optional room/unit, start/end dates and terms.
-- Students can accept or decline offers from **My Applications**.
+- Accommodation seekers can accept or decline offers from **My Applications**.
 - Accepting creates a tenancy record; declining does not.
 - Student and landlord tenancy pages are linked from their dashboards.
 - A printable draft rental agreement preview is available to both parties through role-checked routes in the integrated `main` release; it is not yet deployed and does not capture electronic signatures.
@@ -283,7 +283,7 @@ The platform supports configurable fees rather than hard-coded business prices:
 
 `Landlord → Listing / Management Fee → HomeBridge`
 
-Admin settings support accommodation seeker service fee, student service-fee currency, and landlord listing fee. Payment records support confirmation/rejection workflows and uploaded payment proof.
+Admin settings support accommodation seeker service fee, accommodation seeker service-fee currency, and landlord listing fee. Payment records support confirmation/rejection workflows and uploaded payment proof.
 
 ## Database
 
