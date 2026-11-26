@@ -137,3 +137,39 @@ def test_landlord_cannot_create_charge_for_another_landlords_tenancy(app):
         "currency": "USD", "due_date": "2026-12-01",
     })
     assert response.status_code == 404
+
+
+def test_landlord_can_record_offline_payment_and_deposit_refund(app):
+    from app.models import PropertyCharge, PropertyTransaction
+
+    _, _, tenancy_id = _create_accounts_and_tenancy(app)
+    client = app.test_client()
+    _login(client, "landlord@finance-test.homebridge", "landlord-password")
+    response = client.post(f"/landlord/tenancies/{tenancy_id}/charges", data={
+        "charge_type": "security_deposit", "title": "Security deposit",
+        "amount": "300", "currency": "USD", "due_date": "2026-12-01",
+    })
+    assert response.status_code == 302
+
+    with app.app_context():
+        charge_id = PropertyCharge.query.one().id
+
+    response = client.post(f"/landlord/charges/{charge_id}/record-payment", data={
+        "amount": "300", "method": "cash", "reference": "CASH-001",
+    })
+    assert response.status_code == 302
+    with app.app_context():
+        charge = PropertyCharge.query.one()
+        assert str(charge.paid_amount) == "300.00"
+        assert PropertyTransaction.query.one().status == "confirmed"
+
+    response = client.post(f"/landlord/charges/{charge_id}/refund", data={
+        "amount": "100", "method": "bank_transfer", "reference": "REFUND-001",
+    })
+    assert response.status_code == 302
+    with app.app_context():
+        charge = PropertyCharge.query.one()
+        assert str(charge.paid_amount) == "200.00"
+        assert len(PropertyTransaction.query.all()) == 2
+        refund = PropertyTransaction.query.filter_by(transaction_type="refund").one()
+        assert refund.status == "confirmed"
