@@ -321,7 +321,7 @@ class PropertyTransaction(db.Model):
 
     charge = db.relationship("PropertyCharge", back_populates="transactions")
     tenancy = db.relationship("Tenancy", foreign_keys=[tenancy_id])
-    property = db.relationship("Property", foreign_keys=[property_id])
+    property_listing = db.relationship("Property", foreign_keys=[property_id])
     landlord = db.relationship("User", foreign_keys=[landlord_id])
     tenant = db.relationship("User", foreign_keys=[tenant_id])
     submitted_by = db.relationship("User", foreign_keys=[submitted_by_id])
