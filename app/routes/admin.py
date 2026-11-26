@@ -595,8 +595,8 @@ def create_staff():
     password = request.form.get("password", "")
     role_key = request.form.get("role_key", "").strip()
 
-    if not name or len(name) > 150 or "@" not in email or len(email) > 120:
-        flash("Enter a valid staff name and email address.", "danger")
+    if not name or len(name) > 150 or "@" not in email or len(email) > 120 or len(phone) > 30:
+        flash("Enter a valid staff name, email address, and phone number.", "danger")
         return redirect(url_for("admin_bp.staff"))
     if len(password) < 16:
         flash("Initial staff passwords must be at least 16 characters.", "danger")
@@ -647,7 +647,7 @@ def change_staff_role(user_id):
 
     assignment = AdminUserRole.query.filter_by(user_id=member.id).first()
     previous_key = assignment.role.key if assignment and assignment.role else None
-    if previous_key == "super_admin" and role_key != "super_admin":
+    if previous_key == "super_admin" and member.is_active_account and role_key != "super_admin":
         active_super_admins = (
             AdminUserRole.query.join(AdminRole, AdminRole.id == AdminUserRole.role_id)
             .join(User, User.id == AdminUserRole.user_id)
