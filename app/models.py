@@ -254,7 +254,7 @@ class PropertyCharge(db.Model):
     created_by_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
     tenancy = db.relationship("Tenancy", foreign_keys=[tenancy_id])
-    property = db.relationship("Property", foreign_keys=[property_id])
+    property_listing = db.relationship("Property", foreign_keys=[property_id])
     landlord = db.relationship("User", foreign_keys=[landlord_id])
     tenant = db.relationship("User", foreign_keys=[tenant_id])
     created_by = db.relationship("User", foreign_keys=[created_by_id])
