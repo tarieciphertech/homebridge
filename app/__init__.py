@@ -1,4 +1,4 @@
-from flask import Flask, abort, request
+from flask import Flask, abort, redirect, request, url_for
 from flask_login import LoginManager
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
@@ -88,6 +88,19 @@ def create_app():
             if parts and parts[0] == "uploads" and (len(parts) < 2 or parts[1] != "properties"):
                 abort(404)
 
+    @app.before_request
+    def enforce_admin_password_change():
+        from flask_login import current_user
+        if (
+            current_user.is_authenticated
+            and current_user.role == "admin"
+            and current_user.must_change_password
+            and request.endpoint not in {
+                "admin_bp.force_change_password", "auth.logout", "static"
+            }
+        ):
+            return redirect(url_for("admin_bp.force_change_password"))
+
     @app.context_processor
     def inject_notification_count():
         from flask_login import current_user
@@ -96,6 +109,12 @@ def create_app():
         if current_user.is_authenticated:
             count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
         return {"unread_notification_count": count}
+
+    @app.context_processor
+    def inject_admin_permissions():
+        from flask_login import current_user
+        from app.admin_access import has_admin_permission
+        return {"admin_can": lambda permission: has_admin_permission(current_user, permission)}
 
     os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], "properties"), exist_ok=True)
     os.makedirs(os.path.join(app.config["UPLOAD_FOLDER"], "proofs"), exist_ok=True)
@@ -107,13 +126,15 @@ def create_app():
         # migrations. create_all is retained for local development and CI.
         if env != "production":
             db.create_all()
+            from app.admin_access import seed_admin_access_control
+            seed_admin_access_control()
         create_default_admin()
 
     return app
 
 
 def create_default_admin():
-    from app.models import User, db
+    from app.models import AdminRole, AdminUserRole, User, db
     from werkzeug.security import generate_password_hash
 
     if User.query.filter_by(role="admin").first():
@@ -148,5 +169,12 @@ def create_default_admin():
         is_active_account=True,
     )
     db.session.add(admin)
+    db.session.flush()
+    super_admin_role = AdminRole.query.filter_by(key="super_admin").first()
+    if super_admin_role is None:
+        raise RuntimeError(
+            "Administrator roles are not installed. Apply the admin access-control migration before startup."
+        )
+    db.session.add(AdminUserRole(user_id=admin.id, role_id=super_admin_role.id))
     db.session.commit()
-    print("Initial HomeBridge administrator account created.")
+    print("Initial HomeBridge Super Admin account created.")
