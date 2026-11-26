@@ -10,7 +10,8 @@ from werkzeug.utils import secure_filename
 
 from app.agreement_workflow import get_or_create_agreement, get_agreement_fields, save_agreement_fields, record_review, store_signed_pdf
 from app.notifications import create_in_app_notification
-from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, PropertyLocalDetails, RentPayment, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
+from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, PropertyImage, PropertyLocalDetails, RentPayment, PropertyCharge, PropertyTransaction, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
+from app.rent_payment_workflow import store_rent_payment_proof
 
 landlord = Blueprint("landlord", __name__, url_prefix="/landlord")
 
@@ -233,6 +234,197 @@ def cancel_viewing(application_id):
 
 
 
+
+
+
+@landlord.route("/finance")
+@landlord_required
+def finance():
+    charges = PropertyCharge.query.filter_by(landlord_id=current_user.id).order_by(PropertyCharge.created_at.desc()).all()
+    transactions = PropertyTransaction.query.filter_by(landlord_id=current_user.id).order_by(PropertyTransaction.submitted_at.desc()).limit(100).all()
+    tenancies = Tenancy.query.join(Property).filter(
+        Property.landlord_id == current_user.id, Tenancy.status == "active"
+    ).order_by(Tenancy.created_at.desc()).all()
+    return render_template("landlord/finance.html", charges=charges, transactions=transactions, tenancies=tenancies)
+
+
+@landlord.route("/tenancies/<int:tenancy_id>/charges", methods=["POST"])
+@landlord_required
+def create_property_charge(tenancy_id):
+    from decimal import Decimal, InvalidOperation
+
+    tenancy = Tenancy.query.join(Property).filter(
+        Tenancy.id == tenancy_id, Property.landlord_id == current_user.id,
+        Tenancy.status == "active",
+    ).first_or_404()
+    charge_type = request.form.get("charge_type", "other").strip().lower()
+    if charge_type not in {"rent", "security_deposit", "utilities", "maintenance", "other"}:
+        flash("Choose a valid property charge type.", "danger")
+        return redirect(url_for("landlord.finance"))
+    title = request.form.get("title", "").strip()[:180]
+    description = request.form.get("description", "").strip()[:4000]
+    try:
+        amount = Decimal(request.form.get("amount", "").strip())
+        if not amount.is_finite() or amount <= 0 or amount > Decimal("9999999999.99"):
+            raise InvalidOperation
+        due_date = datetime.strptime(request.form.get("due_date", ""), "%Y-%m-%d").date()
+    except (InvalidOperation, ValueError):
+        flash("Enter a valid positive amount and due date.", "danger")
+        return redirect(url_for("landlord.finance"))
+    if not title:
+        title = charge_type.replace("_", " ").title()
+    currency = {"USD": "USD", "ZIG": "ZiG", "ZAR": "ZAR"}.get(request.form.get("currency", "").strip().upper())
+    if not currency or currency != tenancy.rent_currency:
+        flash(f"Use the tenancy currency ({tenancy.rent_currency}) for this charge.", "danger")
+        return redirect(url_for("landlord.finance"))
+
+    charge = PropertyCharge(
+        tenancy_id=tenancy.id, property_id=tenancy.property_id,
+        landlord_id=current_user.id, tenant_id=tenancy.student_id,
+        charge_type=charge_type, title=title, description=description or None,
+        amount=amount, currency=currency, due_date=due_date, created_by_id=current_user.id,
+    )
+    db.session.add(charge)
+    create_in_app_notification(
+        tenancy.student_id, "property_charge_created", "New property charge",
+        f"{current_user.name} added {currency} {amount} for {title} at {tenancy.property.title}.",
+        url_for("student.finance"), current_user.id,
+    )
+    db.session.commit()
+    flash("Property charge added and shared with the tenant.", "success")
+    return redirect(url_for("landlord.finance"))
+
+
+
+@landlord.route("/charges/<int:charge_id>/record-payment", methods=["POST"])
+@landlord_required
+def record_property_payment(charge_id):
+    from decimal import Decimal, InvalidOperation
+
+    charge = PropertyCharge.query.filter_by(
+        id=charge_id, landlord_id=current_user.id
+    ).first_or_404()
+    try:
+        amount = Decimal(request.form.get("amount", "").strip())
+        available = charge.balance_due - charge.pending_amount
+        if not amount.is_finite() or amount <= 0 or amount > available:
+            raise InvalidOperation
+    except (InvalidOperation, ValueError):
+        flash("Enter a valid amount that does not exceed the unallocated balance.", "danger")
+        return redirect(url_for("landlord.finance"))
+    method = request.form.get("method", "cash").strip().lower()
+    if method not in {"cash", "bank_transfer", "mobile_money", "other"}:
+        flash("Choose a valid payment method.", "danger")
+        return redirect(url_for("landlord.finance"))
+
+    transaction = PropertyTransaction(
+        charge_id=charge.id, tenancy_id=charge.tenancy_id, property_id=charge.property_id,
+        landlord_id=current_user.id, tenant_id=charge.tenant_id, submitted_by_id=current_user.id,
+        transaction_type="payment", amount=amount, currency=charge.currency, method=method,
+        reference=request.form.get("reference", "").strip()[:100] or None,
+        status="confirmed", notes=request.form.get("notes", "").strip()[:2000] or None,
+        reviewed_by_id=current_user.id, reviewed_at=datetime.utcnow(),
+        review_notes="Payment recorded by landlord after receiving funds directly.",
+    )
+    db.session.add(transaction)
+    create_in_app_notification(
+        charge.tenant_id, "property_payment_recorded", "Payment recorded by landlord",
+        f"{charge.currency} {amount} was recorded against {charge.title} at {charge.property_listing.title}.",
+        url_for("student.finance"), current_user.id,
+    )
+    db.session.commit()
+    flash("Payment recorded and the tenant's balance updated.", "success")
+    return redirect(url_for("landlord.finance"))
+
+
+@landlord.route("/charges/<int:charge_id>/refund", methods=["POST"])
+@landlord_required
+def record_deposit_refund(charge_id):
+    from decimal import Decimal, InvalidOperation
+
+    charge = PropertyCharge.query.filter_by(
+        id=charge_id, landlord_id=current_user.id, charge_type="security_deposit"
+    ).first_or_404()
+    try:
+        amount = Decimal(request.form.get("amount", "").strip())
+        if not amount.is_finite() or amount <= 0 or amount > charge.paid_amount:
+            raise InvalidOperation
+    except (InvalidOperation, ValueError):
+        flash("Refund must be positive and cannot exceed the unrefunded confirmed deposit.", "danger")
+        return redirect(url_for("landlord.finance"))
+    method = request.form.get("method", "bank_transfer").strip().lower()
+    if method not in {"cash", "bank_transfer", "mobile_money", "other"}:
+        flash("Choose a valid refund method.", "danger")
+        return redirect(url_for("landlord.finance"))
+    transaction = PropertyTransaction(
+        charge_id=charge.id, tenancy_id=charge.tenancy_id, property_id=charge.property_id,
+        landlord_id=current_user.id, tenant_id=charge.tenant_id, submitted_by_id=current_user.id,
+        transaction_type="refund", amount=amount, currency=charge.currency, method=method,
+        reference=request.form.get("reference", "").strip()[:100] or None,
+        status="confirmed", notes=request.form.get("notes", "").strip()[:2000] or None,
+        reviewed_by_id=current_user.id, reviewed_at=datetime.utcnow(),
+        review_notes="Refund recorded by landlord.",
+    )
+    db.session.add(transaction)
+    create_in_app_notification(
+        charge.tenant_id, "property_deposit_refunded", "Deposit refund recorded",
+        f"A {charge.currency} {amount} deposit refund was recorded for {charge.property_listing.title}.",
+        url_for("student.finance"), current_user.id,
+    )
+    db.session.commit()
+    flash("Deposit refund recorded in the shared transaction history.", "success")
+    return redirect(url_for("landlord.finance"))
+
+
+@landlord.route("/transactions/<int:transaction_id>/review", methods=["POST"])
+@landlord_required
+def review_property_transaction(transaction_id):
+    transaction = PropertyTransaction.query.filter_by(
+        id=transaction_id, landlord_id=current_user.id, transaction_type="payment"
+    ).first_or_404()
+    decision = request.form.get("decision", "").strip().lower()
+    if transaction.status != "pending":
+        flash("This transaction has already been reviewed.", "warning")
+        return redirect(url_for("landlord.finance"))
+    if decision not in {"confirmed", "rejected"}:
+        flash("Choose confirm or reject.", "danger")
+        return redirect(url_for("landlord.finance"))
+    if decision == "confirmed":
+        confirmed = sum(
+            (item.amount for item in transaction.charge.transactions
+             if item.id != transaction.id and item.status == "confirmed" and item.transaction_type == "payment"),
+            start=__import__("decimal").Decimal("0.00"),
+        )
+        if confirmed + transaction.amount > transaction.charge.amount:
+            flash("This confirmation would overpay the charge. Resolve the other pending submissions first.", "warning")
+            return redirect(url_for("landlord.finance"))
+    transaction.status = decision
+    transaction.reviewed_by_id = current_user.id
+    transaction.reviewed_at = datetime.utcnow()
+    transaction.review_notes = request.form.get("review_notes", "").strip()[:5000] or None
+    create_in_app_notification(
+        transaction.tenant_id, "property_transaction_reviewed", "Property payment reviewed",
+        f"Your {transaction.currency} {transaction.amount} payment for {transaction.charge.title} was {decision}.",
+        url_for("student.finance"), current_user.id,
+    )
+    db.session.commit()
+    flash(f"Payment {decision}.", "success")
+    return redirect(url_for("landlord.finance"))
+
+
+@landlord.route("/transactions/<int:transaction_id>/proof")
+@landlord_required
+def download_property_transaction_proof(transaction_id):
+    transaction = PropertyTransaction.query.filter_by(
+        id=transaction_id, landlord_id=current_user.id
+    ).first_or_404()
+    if not transaction.proof_file:
+        abort(404)
+    return send_from_directory(
+        current_app.config["PRIVATE_UPLOAD_FOLDER"], transaction.proof_file,
+        as_attachment=True,
+        download_name=f"property-payment-proof-{transaction.id}{os.path.splitext(transaction.proof_file)[1]}",
+    )
 
 
 @landlord.route("/rent-payments")

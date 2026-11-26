@@ -11,7 +11,7 @@ from werkzeug.utils import secure_filename
 from app.agreement_workflow import get_or_create_agreement, get_agreement_fields, save_agreement_fields, record_review, store_signed_pdf
 from app.notifications import create_in_app_notification
 from app.rent_payment_workflow import store_rent_payment_proof
-from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, RentPayment, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
+from app.models import Application, MaintenanceRequest, Payment, PlatformSetting, Property, RentPayment, PropertyCharge, PropertyTransaction, Tenancy, TenancyOffer, ViewingAppointment, RentalAgreement, db
 
 student = Blueprint("student", __name__, url_prefix="/student")
 
@@ -61,6 +61,74 @@ def dashboard():
 
 
 
+
+
+
+@student.route("/finance")
+@student_required
+def finance():
+    charges = PropertyCharge.query.filter_by(tenant_id=current_user.id).order_by(PropertyCharge.due_date.asc(), PropertyCharge.created_at.desc()).all()
+    transactions = PropertyTransaction.query.filter_by(tenant_id=current_user.id).order_by(PropertyTransaction.submitted_at.desc()).all()
+    return render_template("student/finance.html", charges=charges, transactions=transactions)
+
+
+@student.route("/charges/<int:charge_id>/payments", methods=["POST"])
+@student_required
+def submit_property_charge_payment(charge_id):
+    from decimal import Decimal, InvalidOperation
+
+    charge = PropertyCharge.query.filter_by(
+        id=charge_id, tenant_id=current_user.id
+    ).first_or_404()
+    try:
+        amount = Decimal(request.form.get("amount", "").strip())
+        available = charge.balance_due - charge.pending_amount
+        if not amount.is_finite() or amount <= 0 or amount > available:
+            raise InvalidOperation
+    except (InvalidOperation, ValueError):
+        flash("Enter a valid amount that does not exceed the remaining balance.", "danger")
+        return redirect(url_for("student.finance"))
+    method = request.form.get("method", "bank_transfer").strip().lower()
+    if method not in {"cash", "bank_transfer", "mobile_money", "other"}:
+        flash("Choose a valid payment method.", "danger")
+        return redirect(url_for("student.finance"))
+    try:
+        proof_file = store_rent_payment_proof(request.files.get("proof_file"))
+    except ValueError as exc:
+        flash(str(exc), "danger")
+        return redirect(url_for("student.finance"))
+    transaction = PropertyTransaction(
+        charge_id=charge.id, tenancy_id=charge.tenancy_id, property_id=charge.property_id,
+        landlord_id=charge.landlord_id, tenant_id=current_user.id, submitted_by_id=current_user.id,
+        transaction_type="payment", amount=amount, currency=charge.currency, method=method,
+        reference=request.form.get("reference", "").strip()[:100] or None,
+        proof_file=proof_file, status="pending",
+        notes=request.form.get("notes", "").strip()[:2000] or None,
+    )
+    db.session.add(transaction)
+    create_in_app_notification(
+        charge.landlord_id, "property_transaction_submitted", "Tenant payment submitted",
+        f"{current_user.name} submitted {charge.currency} {amount} for {charge.title} at {charge.property_listing.title}.",
+        url_for("landlord.finance"), current_user.id,
+    )
+    db.session.commit()
+    flash("Payment proof submitted. The landlord will review it.", "success")
+    return redirect(url_for("student.finance"))
+
+
+@student.route("/transactions/<int:transaction_id>/proof")
+@student_required
+def download_property_transaction_proof(transaction_id):
+    transaction = PropertyTransaction.query.filter_by(
+        id=transaction_id, tenant_id=current_user.id
+    ).first_or_404()
+    if not transaction.proof_file:
+        abort(404)
+    return send_from_directory(
+        current_app.config["PRIVATE_UPLOAD_FOLDER"], transaction.proof_file,
+        as_attachment=True,
+        download_name=f"property-payment-proof-{transaction.id}{os.path.splitext(transaction.proof_file)[1]}",
+    )
 
 
 @student.route("/rent-payments")

@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}My Property Finance · HomeBridge{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4"><div><p class="hb-kicker mb-2">Tenant workspace</p><h1>My Property Finance</h1><p class="text-muted mb-0">View charges, outstanding balances and payment history for your accommodation.</p></div><a class="btn btn-outline-light" href="{{ url_for('student.dashboard') }}">Back to dashboard</a></div>
+  <div class="alert alert-info">Payments are made directly to your landlord. HomeBridge only records submissions and landlord reviews; it does not collect rent, deposits or utility payments.</div>
+  <div class="card p-4 mb-4"><h2 class="h4">Charges and balances</h2>
+    {% for charge in charges %}
+    <div class="border-top py-3">
+      <div class="d-flex justify-content-between flex-wrap gap-2"><strong>{{ charge.title }} · {{ charge.property_listing.title }}</strong><span class="badge {% if charge.payment_status=='paid' %}text-bg-success{% elif charge.payment_status=='partially paid' %}text-bg-info{% else %}text-bg-warning{% endif %}">{{ charge.payment_status|title }}</span></div>
+      <div class="small text-muted">{{ charge.charge_type|replace('_',' ')|title }} · Landlord {{ charge.landlord.name }} · Due {{ charge.due_date.strftime('%d %b %Y') }}</div>
+      <div class="mt-1">{{ charge.currency }} {{ '%.2f'|format(charge.amount) }} charged · {{ '%.2f'|format(charge.paid_amount) }} confirmed · <strong>{{ '%.2f'|format(charge.balance_due) }} outstanding</strong>{% if charge.pending_amount %} · {{ '%.2f'|format(charge.pending_amount) }} awaiting review{% endif %}</div>
+      {% if charge.description %}<p class="small text-muted mt-1 mb-0">{{ charge.description }}</p>{% endif %}
+      {% if charge.balance_due > charge.pending_amount %}
+      <form method="post" enctype="multipart/form-data" action="{{ url_for('student.submit_property_charge_payment', charge_id=charge.id) }}" class="row g-2 mt-2"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="col-md-2"><label class="form-label">Amount ({{ charge.currency }})</label><input class="form-control" type="number" name="amount" min="0.01" max="{{ charge.balance_due - charge.pending_amount }}" step="0.01" required></div><div class="col-md-2"><label class="form-label">Method</label><select class="form-select" name="method"><option value="bank_transfer">Bank transfer</option><option value="cash">Cash</option><option value="mobile_money">Mobile money</option><option value="other">Other</option></select></div><div class="col-md-3"><label class="form-label">Reference</label><input class="form-control" name="reference" maxlength="100"></div><div class="col-md-5"><label class="form-label">Proof (PDF, PNG or JPEG, max 10 MB)</label><input class="form-control" type="file" name="proof_file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" required></div><div class="col-12"><input class="form-control" name="notes" maxlength="2000" placeholder="Optional note for your landlord"><button class="btn btn-gold mt-2" type="submit">Submit payment proof</button></div></form>
+      {% endif %}
+    </div>
+    {% else %}<p class="text-muted mb-0">No charges have been issued for your tenancies.</p>{% endfor %}
+  </div>
+  <div class="card p-4"><h2 class="h4">Transaction history</h2>
+    {% for transaction in transactions %}
+    <div class="border-top py-3"><div class="d-flex justify-content-between flex-wrap gap-2"><strong>{{ transaction.charge.title }} · {{ transaction.property_listing.title }}</strong><span class="badge {% if transaction.status=='confirmed' %}text-bg-success{% elif transaction.status=='rejected' %}text-bg-danger{% else %}text-bg-warning{% endif %}">{{ transaction.status|title }}</span></div><div>{{ transaction.transaction_type|title }} · {{ transaction.currency }} {{ transaction.amount }} · {{ transaction.method|replace('_',' ')|title }}{% if transaction.reference %} · Ref {{ transaction.reference }}{% endif %}</div><div class="small text-muted">Submitted {{ transaction.submitted_at.strftime('%d %b %Y %H:%M') }}{% if transaction.reviewed_at %} · Reviewed {{ transaction.reviewed_at.strftime('%d %b %Y %H:%M') }}{% endif %}</div>{% if transaction.proof_file %}<a class="btn btn-sm btn-outline-dark mt-2" href="{{ url_for('student.download_property_transaction_proof', transaction_id=transaction.id) }}">View submitted proof</a>{% endif %}{% if transaction.review_notes %}<p class="small mt-2 mb-0">Landlord note: {{ transaction.review_notes }}</p>{% endif %}</div>
+    {% else %}<p class="text-muted mb-0">No transactions recorded yet.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}
