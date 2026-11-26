@@ -295,6 +295,48 @@ def create_property_charge(tenancy_id):
     return redirect(url_for("landlord.finance"))
 
 
+
+@landlord.route("/charges/<int:charge_id>/record-payment", methods=["POST"])
+@landlord_required
+def record_property_payment(charge_id):
+    from decimal import Decimal, InvalidOperation
+
+    charge = PropertyCharge.query.filter_by(
+        id=charge_id, landlord_id=current_user.id
+    ).first_or_404()
+    try:
+        amount = Decimal(request.form.get("amount", "").strip())
+        available = charge.balance_due - charge.pending_amount
+        if not amount.is_finite() or amount <= 0 or amount > available:
+            raise InvalidOperation
+    except (InvalidOperation, ValueError):
+        flash("Enter a valid amount that does not exceed the unallocated balance.", "danger")
+        return redirect(url_for("landlord.finance"))
+    method = request.form.get("method", "cash").strip().lower()
+    if method not in {"cash", "bank_transfer", "mobile_money", "other"}:
+        flash("Choose a valid payment method.", "danger")
+        return redirect(url_for("landlord.finance"))
+
+    transaction = PropertyTransaction(
+        charge_id=charge.id, tenancy_id=charge.tenancy_id, property_id=charge.property_id,
+        landlord_id=current_user.id, tenant_id=charge.tenant_id, submitted_by_id=current_user.id,
+        transaction_type="payment", amount=amount, currency=charge.currency, method=method,
+        reference=request.form.get("reference", "").strip()[:100] or None,
+        status="confirmed", notes=request.form.get("notes", "").strip()[:2000] or None,
+        reviewed_by_id=current_user.id, reviewed_at=datetime.utcnow(),
+        review_notes="Payment recorded by landlord after receiving funds directly.",
+    )
+    db.session.add(transaction)
+    create_in_app_notification(
+        charge.tenant_id, "property_payment_recorded", "Payment recorded by landlord",
+        f"{charge.currency} {amount} was recorded against {charge.title} at {charge.property_listing.title}.",
+        url_for("student.finance"), current_user.id,
+    )
+    db.session.commit()
+    flash("Payment recorded and the tenant's balance updated.", "success")
+    return redirect(url_for("landlord.finance"))
+
+
 @landlord.route("/charges/<int:charge_id>/refund", methods=["POST"])
 @landlord_required
 def record_deposit_refund(charge_id):
