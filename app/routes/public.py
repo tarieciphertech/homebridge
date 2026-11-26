@@ -44,7 +44,12 @@ def properties():
     if max_price is not None and max_price >= 0:
         query = query.filter(Property.price <= max_price)
     if rent_period:
-        query = query.outerjoin(PropertyLocalDetails).filter(PropertyLocalDetails.rent_period == rent_period)
+        query = query.outerjoin(PropertyLocalDetails)
+        if rent_period == "month":
+            # Existing listings without local detail rows display as monthly by default.
+            query = query.filter(or_(PropertyLocalDetails.rent_period == "month", PropertyLocalDetails.id.is_(None)))
+        else:
+            query = query.filter(PropertyLocalDetails.rent_period == rent_period)
     if keyword:
         if not rent_period:
             query = query.outerjoin(PropertyLocalDetails)
