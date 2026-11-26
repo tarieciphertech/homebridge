@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
-{% block title %}Find Student Accommodation · HomeBridge{% endblock %}
+{% block title %}Find Accommodation · HomeBridge{% endblock %}
 {% block content %}
 <section class="hb-hero">
-  <div class="hb-hero-image" role="img" aria-label="Bright, welcoming student accommodation interior"></div>
+  <div class="hb-hero-image" role="img" aria-label="Bright, welcoming home interior"></div>
   <div class="container hb-hero-content">
-    <div class="hb-eyebrow"><span></span> ZIMBABWE STUDENT ACCOMMODATION</div>
-    <h1>Find your place<br><em>near your campus.</em></h1>
-    <p>Find rooms, hostels, shared homes and student lodges near universities, colleges and schools across Zimbabwe.</p>
+    <div class="hb-eyebrow"><span></span> HOMES AND RENTALS ACROSS ZIMBABWE</div>
+    <h1>Find a place<br><em>to call home.</em></h1>
+    <p>Explore rooms, shared homes, apartments and houses for students, professionals, families and individuals across Zimbabwe.</p>
     <a class="btn btn-gold btn-lg" href="#browse">Explore accommodation <i class="fa-solid fa-arrow-right ms-2"></i></a>
     <div class="hb-hero-note"><i class="fa-solid fa-shield-heart me-2"></i>Discover listings reviewed by the HomeBridge team</div>
   </div>
@@ -15,17 +15,20 @@
 
 <section class="container hb-browse-section" id="browse">
   <div class="hb-section-heading">
-    <div><div class="hb-kicker">THE SEARCH STARTS HERE</div><h2>Spaces that fit your next chapter.</h2><p>Search by institution, city, accommodation type and the details that matter to students and families.</p></div>
+    <div><div class="hb-kicker">THE SEARCH STARTS HERE</div><h2>Spaces that fit your next chapter.</h2><p>Search by location, property type, budget and the features that matter to your next home.</p></div>
     <div class="hb-listing-count"><strong>{{ properties|length }}</strong><span>available<br>listing{{ 's' if properties|length != 1 }}</span></div>
   </div>
 
   <div class="hb-filter-panel">
     <form method="get"><div class="row g-3 align-items-end">
       <div class="col-lg-3 col-sm-6"><label class="form-label">I'm looking for</label><select name="property_type" class="form-select"><option value="">Any accommodation</option><option value="room" {% if property_type=='room' %}selected{% endif %}>Private room</option><option value="shared_house" {% if property_type=='shared_house' %}selected{% endif %}>Shared house</option><option value="student_lodge" {% if property_type=='student_lodge' %}selected{% endif %}>Student lodge</option><option value="hostel" {% if property_type=='hostel' %}selected{% endif %}>Hostel</option><option value="boarding" {% if property_type=='boarding' %}selected{% endif %}>Boarding accommodation</option><option value="apartment" {% if property_type=='apartment' %}selected{% endif %}>Apartment</option><option value="house" {% if property_type=='house' %}selected{% endif %}>House</option></select></div>
-      <div class="col-lg-3 col-sm-6"><label class="form-label">Institution or campus</label><input class="form-control" name="institution" value="{{ institution }}" placeholder="e.g. UZ, NUST, MSU"></div>
+      <div class="col-lg-3 col-sm-6"><label class="form-label">Location or keyword</label><input class="form-control" name="q" value="{{ keyword }}" placeholder="Area, suburb, campus or keyword"></div>
       <div class="col-lg-3 col-sm-6"><label class="form-label">Preferred city</label><select name="city" class="form-select"><option value="">All cities</option>{% for c in cities %}<option value="{{c}}" {% if city==c %}selected{% endif %}>{{c}}</option>{% endfor %}</select></div>
-      <div class="col-lg-3 col-sm-6"><label class="form-label">Minimum rooms</label><input type="number" min="0" name="rooms" value="{{ rooms }}" class="form-control" placeholder="Any number"></div>
-      <div class="col-lg-3 col-sm-6"><button class="btn btn-gold w-100 py-2"><i class="fa-solid fa-magnifying-glass me-2"></i>Find a place</button></div>
+      <div class="col-lg-2 col-sm-6"><label class="form-label">Minimum price</label><input type="number" min="0" step="0.01" name="min_price" value="{{ min_price }}" class="form-control" placeholder="No minimum"></div>
+      <div class="col-lg-2 col-sm-6"><label class="form-label">Maximum price</label><input type="number" min="0" step="0.01" name="max_price" value="{{ max_price }}" class="form-control" placeholder="No maximum"></div>
+      <div class="col-lg-2 col-sm-6"><label class="form-label">Rent period</label><select name="rent_period" class="form-select"><option value="">Any period</option><option value="month" {% if rent_period == "month" %}selected{% endif %}>Monthly</option><option value="week" {% if rent_period == "week" %}selected{% endif %}>Weekly</option><option value="term" {% if rent_period == "term" %}selected{% endif %}>Per term</option></select></div>
+      <div class="col-lg-2 col-sm-6"><label class="form-label">Minimum rooms</label><input type="number" min="0" name="rooms" value="{{ rooms }}" class="form-control" placeholder="Any number"></div>
+      <div class="col-lg-2 col-sm-6"><button class="btn btn-gold w-100 py-2"><i class="fa-solid fa-magnifying-glass me-2"></i>Find a home</button></div>
     </div></form>
   </div>
 
@@ -52,7 +55,7 @@
   {% else %}
   <div class="hb-empty-state">
     <div class="hb-empty-image"><img src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1000&q=85" alt="Warm, sunlit living room" loading="lazy"></div>
-    <div class="hb-empty-copy"><div class="hb-kicker">A LITTLE ROOM TO GROW</div><h3>Your next home is worth finding.</h3><p>No verified accommodation currently matches this search. Try another institution or city, or check back as new Zimbabwean listings are reviewed.</p><a class="btn btn-outline-dark" href="{{url_for('public.properties')}}">Clear filters</a></div>
+    <div class="hb-empty-copy"><div class="hb-kicker">A LITTLE ROOM TO GROW</div><h3>Your next home is worth finding.</h3><p>No verified accommodation currently matches this search. Try a different location, price range or accommodation type, or check back as new listings are reviewed.</p><a class="btn btn-outline-dark" href="{{url_for('public.properties')}}">Clear filters</a></div>
   </div>
   {% endif %}
 </section>
