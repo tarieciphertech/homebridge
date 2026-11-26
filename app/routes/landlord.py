@@ -326,7 +326,7 @@ def record_deposit_refund(charge_id):
     db.session.add(transaction)
     create_in_app_notification(
         charge.tenant_id, "property_deposit_refunded", "Deposit refund recorded",
-        f"A {charge.currency} {amount} deposit refund was recorded for {charge.property.title}.",
+        f"A {charge.currency} {amount} deposit refund was recorded for {charge.property_listing.title}.",
         url_for("student.finance"), current_user.id,
     )
     db.session.commit()
