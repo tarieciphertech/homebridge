@@ -29,8 +29,11 @@ Do not use the placeholder values in `.env.example` in production.
 4. Confirm the baseline application schema exists.
 5. Apply `migrations/20261102_tenancy_workflows.sql`.
 6. Apply `migrations/20261120_agreements_notifications.sql` (includes `property_local_details`, `rental_agreement` and `notification`).
-7. Verify the new columns, tables, indexes and foreign keys.
-8. Rehearse the complete migration sequence against a restored copy before production.
+7. Apply `migrations/20261123_editable_rental_agreements.sql`.
+8. Apply `migrations/20261126_admin_access_control.sql`.
+9. Apply `migrations/20261127_general_accommodation_seekers.sql`.
+10. Verify the new columns, tables, indexes, role grants and foreign keys, including `user.seeker_type`.
+11. Rehearse the complete migration sequence against a restored copy before production.
 
 The application deliberately does not call `db.create_all()` in production. It is used only for development and disposable CI databases. Do not use it as a production migration tool.
 
