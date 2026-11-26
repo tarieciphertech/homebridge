@@ -380,10 +380,10 @@ def submit_service_fee():
     fee = student_service_fee()
     currency = get_setting("student_service_fee_currency", "USD")
     if fee <= 0:
-        flash("No student service fee is currently configured.", "info")
+        flash("No accommodation service fee is currently configured.", "info")
         return redirect(url_for("student.service_fee"))
     if has_confirmed_service_fee():
-        flash("Your student service fee is already confirmed.", "success")
+        flash("Your accommodation service fee is already confirmed.", "success")
         return redirect(url_for("student.service_fee"))
 
     reference = request.form.get("reference", "").strip()
@@ -416,7 +416,7 @@ def submit_service_fee():
 def apply(property_id):
     prop = Property.query.filter_by(id=property_id, is_published=True, availability_status="available").first_or_404()
     if not has_confirmed_service_fee():
-        flash("Please complete and have your student service fee confirmed before applying for accommodation.", "warning")
+        flash("Please complete and have your accommodation service fee confirmed before applying.", "warning")
         return redirect(url_for("student.service_fee"))
     existing = Application.query.filter_by(property_id=prop.id, student_id=current_user.id).filter(Application.status.notin_(["withdrawn", "rejected"])).first()
     if existing:
