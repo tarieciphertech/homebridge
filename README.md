@@ -1,22 +1,21 @@
 # HomeBridge
 
-## Product direction — Zimbabwe-first student accommodation
+## Product direction — general accommodation marketplace
 
-HomeBridge is being shaped around students and families finding suitable accommodation in Zimbabwe when education takes them away from home. The initial audience includes university, college, polytechnic and secondary-school students, as well as international students studying in Zimbabwe. Parent/guardian involvement should be considered in the experience for younger students.
+HomeBridge is a Zimbabwe-first accommodation marketplace for **students, working professionals, families, individuals and anyone else looking for a place to live**. It is no longer limited to student accommodation.
 
-The marketplace should organize discovery around:
-- Zimbabwean cities and education destinations, with initial market focus on Harare, Bulawayo and Gweru.
-- Universities, colleges, polytechnics and secondary schools, including the campus or area served.
-- Private rooms, shared houses, student lodges, hostels, boarding accommodation, apartments and houses.
-- Transparent rent amounts, currencies and payment periods.
-- Clear location, campus distance, room availability, amenities, house rules and listing verification.
+The marketplace supports discovery across:
+- Rooms, shared houses, student lodges, hostels, boarding accommodation, apartments and houses.
+- Cities, suburbs, neighbourhoods and education destinations.
+- Transparent rent amounts, currencies and payment periods (monthly, weekly or per term where configured).
+- Location, room availability, amenities, house rules, property photographs and listing verification.
+- Optional education context such as nearby institutions, campuses and distance. Education details enrich a listing but are never required for a general rental search.
 
-The first implementation slice adds institution/campus search and landlord listing fields for nearby education institutions, campus/area, distance in kilometres, rent currency (USD, ZiG or ZAR), and rent period (month, week or term). These fields are stored in a separate PropertyLocalDetails table so the existing property table and existing records do not need destructive changes. Development and CI create this table through SQLAlchemy; production creates it through the reviewed SQL migration.
+New accommodation seekers select a profile category (student, working professional, family or individual) at registration. For backwards compatibility, all seeker categories continue to use the established renter workflow and internal `student` role while the profile category is stored separately. Existing student accounts and application, tenancy, agreement, maintenance and rent-payment records are preserved.
 
-This is a Zimbabwe-first product direction, not a claim that all Zimbabwean institutions or accommodation inventory have already been onboarded. Do not invent listings or imply a property is verified unless an admin has completed the review process.
+HomeBridge remains Zimbabwe-first; this does not imply that inventory exists in every city or that a listing is verified before the HomeBridge team completes its review. Do not invent listings or imply verification that has not occurred.
 
-HomeBridge is a student-focused accommodation marketplace and property-management platform for Zimbabwe.
-
+HomeBridge helps people find a place to call home, while landlords manage properties and the HomeBridge team oversees marketplace operations.
 ## Domain migration — 26 November 2026
 
 The Oracle development/test deployment now uses **https://homebridge.synexistech.co.zw**. DNS points to the existing Oracle host, HTTPS is enabled with a Let's Encrypt certificate, and the login endpoint was verified with HTTP 200. The former hostname, **https://homebridge.cyphertech.co.zw**, is retained as a permanent HTTPS redirect to the Synexis hostname so existing links continue to work. Keep the old DNS record and certificate while the redirect is required.
@@ -136,7 +135,7 @@ The following earlier notes are retained as historical context. Where they confl
 ### Verified deployment status at that time
 
 - The Oracle development/test site was reachable over HTTPS: https://homebridge.cyphertech.co.zw/properties
-- The public accommodation page rendered HomeBridge navigation, search filters, and the “Student Accommodation” heading.
+- The public accommodation page renders HomeBridge navigation and marketplace search. The current product direction is general accommodation, not student-only.
 - The page reported **0 listings** at the time. This can be expected when no properties meet the public listing criteria (published and available); it is not by itself proof that the database or listing route is broken.
 - The expected root behavior was a redirect to `/properties`.
 - The deployment uses the existing shared Oracle server. Do not rebuild the host or change shared Nginx/PostgreSQL/Docker settings without checking other services first.
@@ -189,10 +188,10 @@ The development environment is intentionally separate from the public production
 
 ## Platform roles
 
-### Students
+### Accommodation seekers
 
-- Create a student account.
-- Browse published student accommodation.
+- Create an accommodation seeker account as a student, professional, family or individual.
+- Browse published accommodation listings for all renter categories.
 - Filter accommodation by type, city and available rooms.
 - View property photos, amenities, rules and availability.
 - Submit and track accommodation applications.
@@ -250,7 +249,7 @@ The development environment is intentionally separate from the public production
 
 ### Applications and viewing coordination
 
-- Students can apply to published properties.
+- Accommodation seekers can apply to published properties.
 - Duplicate active applications are prevented.
 - Students can view application status.
 - Pending applications can be withdrawn.
@@ -280,11 +279,11 @@ The tenancy migration was applied to the development database on 2 November 2026
 
 The platform supports configurable fees rather than hard-coded business prices:
 
-`Student → Student Service Fee → HomeBridge`
+`Accommodation Seeker → Service Fee → HomeBridge`
 
 `Landlord → Listing / Management Fee → HomeBridge`
 
-Admin settings support student service fee, student service-fee currency, and landlord listing fee. Payment records support confirmation/rejection workflows and uploaded payment proof.
+Admin settings support accommodation seeker service fee, student service-fee currency, and landlord listing fee. Payment records support confirmation/rejection workflows and uploaded payment proof.
 
 ## Database
 
