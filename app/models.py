@@ -235,6 +235,99 @@ class RentPayment(db.Model):
     student = db.relationship("User", foreign_keys=[student_id], backref="rent_payments")
 
 
+class PropertyCharge(db.Model):
+    """A landlord-issued charge attached to one tenant's property tenancy."""
+    __tablename__ = "property_charge"
+
+    id = db.Column(db.Integer, primary_key=True)
+    tenancy_id = db.Column(db.Integer, db.ForeignKey("tenancy.id"), nullable=False, index=True)
+    property_id = db.Column(db.Integer, db.ForeignKey("property.id"), nullable=False, index=True)
+    landlord_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    charge_type = db.Column(db.String(30), nullable=False, default="other")
+    title = db.Column(db.String(180), nullable=False)
+    description = db.Column(db.Text)
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
+    currency = db.Column(db.String(10), nullable=False, default="USD")
+    due_date = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
+    tenancy = db.relationship("Tenancy", foreign_keys=[tenancy_id])
+    property = db.relationship("Property", foreign_keys=[property_id])
+    landlord = db.relationship("User", foreign_keys=[landlord_id])
+    tenant = db.relationship("User", foreign_keys=[tenant_id])
+    created_by = db.relationship("User", foreign_keys=[created_by_id])
+    transactions = db.relationship(
+        "PropertyTransaction", back_populates="charge", lazy=True,
+        cascade="all, delete-orphan", order_by="PropertyTransaction.submitted_at.desc()"
+    )
+
+    @property
+    def paid_amount(self):
+        from decimal import Decimal
+        total = Decimal("0.00")
+        for item in self.transactions:
+            if item.status == "confirmed":
+                total += item.amount if item.transaction_type == "payment" else -item.amount
+        return max(total, Decimal("0.00"))
+
+    @property
+    def pending_amount(self):
+        from decimal import Decimal
+        return sum(
+            (item.amount for item in self.transactions
+             if item.status == "pending" and item.transaction_type == "payment"),
+            Decimal("0.00"),
+        )
+
+    @property
+    def balance_due(self):
+        from decimal import Decimal
+        return max(self.amount - self.paid_amount, Decimal("0.00"))
+
+    @property
+    def payment_status(self):
+        if self.balance_due <= 0:
+            return "paid"
+        if self.paid_amount > 0:
+            return "partially paid"
+        return "due"
+
+
+class PropertyTransaction(db.Model):
+    """Offline tenant payment or landlord-recorded deposit refund."""
+    __tablename__ = "property_transaction"
+
+    id = db.Column(db.Integer, primary_key=True)
+    charge_id = db.Column(db.Integer, db.ForeignKey("property_charge.id"), nullable=False, index=True)
+    tenancy_id = db.Column(db.Integer, db.ForeignKey("tenancy.id"), nullable=False, index=True)
+    property_id = db.Column(db.Integer, db.ForeignKey("property.id"), nullable=False, index=True)
+    landlord_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    tenant_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    submitted_by_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    transaction_type = db.Column(db.String(20), nullable=False, default="payment")
+    amount = db.Column(db.Numeric(12, 2), nullable=False)
+    currency = db.Column(db.String(10), nullable=False)
+    method = db.Column(db.String(30), nullable=False, default="bank_transfer")
+    reference = db.Column(db.String(100))
+    proof_file = db.Column(db.String(255))
+    status = db.Column(db.String(20), nullable=False, default="pending")
+    notes = db.Column(db.Text)
+    submitted_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    reviewed_at = db.Column(db.DateTime)
+    review_notes = db.Column(db.Text)
+
+    charge = db.relationship("PropertyCharge", back_populates="transactions")
+    tenancy = db.relationship("Tenancy", foreign_keys=[tenancy_id])
+    property = db.relationship("Property", foreign_keys=[property_id])
+    landlord = db.relationship("User", foreign_keys=[landlord_id])
+    tenant = db.relationship("User", foreign_keys=[tenant_id])
+    submitted_by = db.relationship("User", foreign_keys=[submitted_by_id])
+    reviewed_by = db.relationship("User", foreign_keys=[reviewed_by_id])
+
+
 class MaintenanceRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     property_id = db.Column(db.Integer, db.ForeignKey("property.id"), nullable=False, index=True)
