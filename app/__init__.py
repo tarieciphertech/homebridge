@@ -60,7 +60,10 @@ def create_app():
     @login_manager.user_loader
     def load_user(user_id):
         try:
-            return db.session.get(User, int(user_id))
+            user = db.session.get(User, int(user_id))
+            # Returning None invalidates an already-open session immediately
+            # after an administrator account is suspended.
+            return user if user and user.is_active_account else None
         except (TypeError, ValueError):
             return None
 
